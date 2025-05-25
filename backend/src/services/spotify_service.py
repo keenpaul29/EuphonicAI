@@ -722,7 +722,8 @@ async def fetch_random_tracks(mood: str, limit: int = 10, language: str = None) 
         
         # Get tracks using Spotify's recommendation API
         try:
-            tracks = await asyncio.to_thread(
+            # Get the coroutine from to_thread and await it to get the actual result
+            tracks_coroutine = asyncio.to_thread(
                 get_recommendations,
                 spotify,
                 lang_config,
@@ -730,6 +731,9 @@ async def fetch_random_tracks(mood: str, limit: int = 10, language: str = None) 
                 limit,
                 mood
             )
+            
+            # Await the coroutine to get the actual tracks
+            tracks = await tracks_coroutine
             
             if tracks and len(tracks) > 0:
                 return tracks
