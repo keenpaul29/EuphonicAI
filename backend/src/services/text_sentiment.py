@@ -45,19 +45,20 @@ class TextSentimentAnalyzer:
         """
         compound = scores['compound']
         
+        # Map sentiment scores to the standard mood categories used in the app
         if compound >= 0.5:
             return 'happy'
         elif compound <= -0.5:
             return 'sad'
-        elif compound >= 0.1:
-            return 'energetic'
-        elif compound <= -0.1:
-            return 'calm'
+        elif compound >= 0.2:
+            return 'surprise'  # positive but not extremely happy
+        elif compound <= -0.2:
+            return 'angry'     # negative but not extremely sad
         else:
-            return 'chill'  # neutral sentiment
+            return 'neutral'   # neutral sentiment
 
     def get_supported_moods(self) -> list:
         """
         Return list of supported moods for text sentiment analysis.
         """
-        return ['happy', 'sad', 'energetic', 'calm', 'chill']
+        return ['happy', 'sad', 'angry', 'neutral', 'surprise', 'fear', 'disgust']
