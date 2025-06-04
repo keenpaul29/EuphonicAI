@@ -32,15 +32,18 @@ cd backend
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
-uvicorn src.main:app --reload
+uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-### Frontend Setup
+#### Frontend Setup
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
+
+### Connecting Frontend to Backend
+The frontend is configured to connect to the backend at `http://localhost:8000` by default. You can change this by setting the `NEXT_PUBLIC_API_BASE_URL` environment variable in the frontend's `.env.local` file.
 
 ## 🔐 Environment Variables
 Create `.env` files in both `frontend` and `backend` directories with:

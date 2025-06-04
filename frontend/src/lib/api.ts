@@ -2,6 +2,38 @@ import axios from 'axios';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
 
+// Configure axios with interceptors for better error handling
+const axiosInstance = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  timeout: 15000, // 15 seconds timeout
+});
+
+// Add request interceptor for logging
+axiosInstance.interceptors.request.use(request => {
+  console.log('API Request:', request.method?.toUpperCase(), request.url);
+  return request;
+});
+
+// Add response interceptor for error handling
+axiosInstance.interceptors.response.use(
+  response => {
+    console.log('API Response:', response.status, response.config.url);
+    return response;
+  },
+  error => {
+    if (axios.isAxiosError(error)) {
+      console.error('API Error:', error.message, error.response?.status, error.config?.url);
+      if (error.response?.data?.detail) {
+        error.message = error.response.data.detail;
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 // Types
 export type Mood = 'happy' | 'sad' | 'angry' | 'neutral' | 'surprised' | 'fearful' | 'disgusted';
 
@@ -53,45 +85,58 @@ export interface TextAnalysisResponse {
 
 // API Client
 class ApiClient {
-  private static client = axios.create({
-    baseURL: API_BASE_URL,
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
+  private static client = axiosInstance;
 
   static async detectEmotion(imageBase64: string, language?: string): Promise<EmotionDetectionResponse> {
     try {
       console.log('Detecting emotion with language:', language);
       // Handle data URL format
       const base64Data = imageBase64.includes('base64,') 
-        ? imageBase64.split('base64,')[1] 
-        : imageBase64;
+        ? imageBase64 // Keep the full data URL format
+        : `data:image/jpeg;base64,${imageBase64}`; // Add prefix if it's missing
 
       const response = await this.client.post<EmotionDetectionResponse>('/api/emotion/detect', {
         image: base64Data,
         language,
         include_playlists: true, // Request playlist recommendations
       });
-      console.log('Emotion detection response:', response.data);
+      console.log('Emotion detection response received');
       return response.data;
     } catch (error) {
       console.error('Error detecting emotion:', error);
       if (axios.isAxiosError(error)) {
-        console.error('Response data:', error.response?.data);
-        throw new Error(error.response?.data?.detail || 'Failed to detect emotion');
+        const statusCode = error.response?.status || 0;
+        const errorDetail = error.response?.data?.detail || 'Failed to detect emotion';
+        
+        // Handle specific error codes
+        if (statusCode === 0 || statusCode === 502) {
+          throw new Error('Cannot connect to the backend server. Please make sure it is running.');
+        } else if (statusCode === 400) {
+          throw new Error(`Bad request: ${errorDetail}`);
+        } else if (statusCode === 404) {
+          throw new Error('API endpoint not found. Please check your backend configuration.');
+        } else {
+          throw new Error(errorDetail);
+        }
       }
-      throw error;
+      throw new Error('An unexpected error occurred. Please try again.');
     }
   }
 
   static async getSupportedLanguages(): Promise<string[]> {
     try {
       const response = await this.client.get<string[]>('/api/emotion/languages');
+      console.log('Supported languages received:', response.data);
       return response.data;
     } catch (error) {
       console.error('Failed to fetch supported languages:', error);
-      return ['english']; // Fallback to English
+      
+      if (axios.isAxiosError(error) && (error.code === 'ECONNREFUSED' || !error.response)) {
+        console.warn('Backend server appears to be offline, using fallback languages');
+      }
+      
+      // Fallback to common languages if the API call fails
+      return ['english', 'hindi', 'spanish', 'french', 'bangla']; 
     }
   }
 

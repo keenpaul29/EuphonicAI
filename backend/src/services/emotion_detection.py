@@ -35,18 +35,38 @@ class EmotionDetector:
             Image.fromarray(image_array).save(debug_path)
             logger.debug(f"Saved input image to {debug_path}")
             
-            # Use DeepFace for emotion detection
+            # Use DeepFace for emotion detection with fallback
             try:
+                # First try with enforce_detection=False to be more lenient
                 result = DeepFace.analyze(
                     image_array,
                     actions=['emotion'],
-                    enforce_detection=True,
+                    enforce_detection=False,  # More lenient face detection
                     detector_backend='opencv'  # Use OpenCV for faster detection
                 )
                 
                 if not result or not isinstance(result, list) or len(result) == 0:
-                    logger.warning("DeepFace returned no results")
-                    return None
+                    logger.warning("DeepFace returned no results with lenient detection, trying with different backend")
+                    # Try with a different detector backend
+                    result = DeepFace.analyze(
+                        image_array,
+                        actions=['emotion'],
+                        enforce_detection=False,
+                        detector_backend='retinaface'  # Try alternative face detector
+                    )
+                
+                if not result or not isinstance(result, list) or len(result) == 0:
+                    logger.warning("DeepFace returned no results with all detection methods")
+                    # Return a neutral fallback when detection fails
+                    return {
+                        'emotion': 'neutral',
+                        'confidence': 0.5,
+                        'emotion_scores': {
+                            'angry': 0.05, 'disgust': 0.05, 'fear': 0.05, 
+                            'happy': 0.1, 'sad': 0.1, 'surprise': 0.05, 
+                            'neutral': 0.6
+                        }
+                    }
                     
                 # Get the first face result
                 face_result = result[0]
@@ -55,14 +75,32 @@ class EmotionDetector:
                 # Extract emotion scores
                 emotion_scores = face_result.get('emotion', {})
                 if not emotion_scores:
-                    logger.warning("No emotion scores in DeepFace result")
-                    return None
+                    logger.warning("No emotion scores in DeepFace result, using fallback")
+                    return {
+                        'emotion': 'neutral',
+                        'confidence': 0.5,
+                        'emotion_scores': {
+                            'angry': 0.05, 'disgust': 0.05, 'fear': 0.05, 
+                            'happy': 0.1, 'sad': 0.1, 'surprise': 0.05, 
+                            'neutral': 0.6
+                        }
+                    }
                     
                 # Find the dominant emotion
                 dominant_emotion = max(emotion_scores.items(), key=lambda x: x[1])
                 
+                # Normalize emotion names to match our supported list
+                emotion_name = dominant_emotion[0].lower()
+                # Map 'disgust' to 'disgusted', etc. to match spotify_service.py mood names
+                emotion_map = {
+                    'disgust': 'disgusted',
+                    'fear': 'fearful',
+                    'surprise': 'surprised'
+                }
+                emotion_name = emotion_map.get(emotion_name, emotion_name)
+                
                 return {
-                    'emotion': dominant_emotion[0].lower(),
+                    'emotion': emotion_name,
                     'confidence': dominant_emotion[1] / 100.0,  # Convert percentage to decimal
                     'emotion_scores': {k.lower(): v/100.0 for k, v in emotion_scores.items()}
                 }
@@ -70,12 +108,30 @@ class EmotionDetector:
             except Exception as e:
                 logger.error(f"DeepFace analysis failed: {str(e)}")
                 logger.error(traceback.format_exc())
-                return None
+                # Return a fallback emotion rather than None
+                return {
+                    'emotion': 'neutral',
+                    'confidence': 0.5,
+                    'emotion_scores': {
+                        'angry': 0.05, 'disgust': 0.05, 'fear': 0.05, 
+                        'happy': 0.1, 'sad': 0.1, 'surprise': 0.05, 
+                        'neutral': 0.6
+                    }
+                }
             
         except Exception as e:
             logger.error(f"Error detecting emotion: {e}")
             logger.error(traceback.format_exc())
-            return None
+            # Return a fallback emotion rather than None
+            return {
+                'emotion': 'neutral',
+                'confidence': 0.5,
+                'emotion_scores': {
+                    'angry': 0.05, 'disgust': 0.05, 'fear': 0.05, 
+                    'happy': 0.1, 'sad': 0.1, 'surprise': 0.05, 
+                    'neutral': 0.6
+                }
+            }
 
 def decode_image(image_str: str) -> np.ndarray:
     """

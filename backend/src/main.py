@@ -35,12 +35,13 @@ app = FastAPI(
 )
 
 # CORS Middleware
+frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000')
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allows all origins
+    allow_origins=[frontend_url, "http://localhost:3000"],  # Frontend URLs
     allow_credentials=True,
-    allow_methods=["*"],  # Allows all methods
-    allow_headers=["*"],  # Allows all headers
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],  # Specific methods
+    allow_headers=["Content-Type", "Authorization"],  # Specific headers
 )
 
 # Mount routers
