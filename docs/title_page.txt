@@ -1,0 +1,23 @@
+MOODIFY: AI-POWERED MOOD-BASED MUSIC RECOMMENDATION SYSTEM
+
+A Project Report Submitted in Partial Fulfillment
+of the Requirements for the Award of the Degree of
+
+Bachelor of Technology
+in
+Computer Science and Engineering
+
+By:
+Shreyashi Das (Roll No.: 11100121003)
+Sentu Naskar (Roll No.: 11100121026)
+Puspal Paul (Roll No.: 11100121004)
+Anwesha Mondal (Roll No.: 11100121006)
+
+Under the Supervision of
+Dr. Hasanujjaman
+
+Department of Computer Science and Engineering
+Government College of Engineering and Textile Technology,
+Berhampore, Murshidabad-742101, India.
+
+2025

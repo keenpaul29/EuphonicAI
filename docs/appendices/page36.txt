@@ -1,0 +1,80 @@
+Appendix B: API Documentation and Endpoints
+
+1. Core API Endpoints:
+
+a) Emotion Detection API:
+   ```
+   POST /api/emotion/analyze
+   Description: Analyzes facial expression from image
+   Request:
+     - image: multipart/form-data
+     - confidence_threshold: float (optional)
+   Response:
+     {
+       "emotion": string,
+       "confidence": float,
+       "timestamp": string
+     }
+   
+   POST /api/emotion/text
+   Description: Analyzes text sentiment
+   Request:
+     {
+       "text": string,
+       "language": string (optional)
+     }
+   Response:
+     {
+       "sentiment": string,
+       "confidence": float
+     }
+   ```
+
+b) Music Recommendation API:
+   ```
+   GET /api/music/recommendations
+   Description: Gets music recommendations based on emotion
+   Parameters:
+     - emotion: string
+     - limit: int (default: 10)
+   Response:
+     {
+       "tracks": [
+         {
+           "id": string,
+           "name": string,
+           "artist": string,
+           "url": string,
+           "features": object
+         }
+       ]
+     }
+   ```
+
+2. Authentication Endpoints:
+
+a) User Authentication:
+   ```
+   POST /api/auth/login
+   Description: User login
+   Request:
+     {
+       "username": string,
+       "password": string
+     }
+   Response:
+     {
+       "access_token": string,
+       "token_type": string,
+       "expires_in": int
+     }
+   ```
+
+b) Spotify Integration:
+   ```
+   GET /api/spotify/authorize
+   Description: Initiates Spotify OAuth flow
+   
+   GET /api/spotify/callback
+   Description: Handles Spotify OAuth callback
+   ```

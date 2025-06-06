@@ -1,0 +1,90 @@
+3.1 Overall System Design
+
+Think of Moodify as a well-orchestrated band, where each component plays its part perfectly to create beautiful music. Here's how we've put it all together:
+
+The Big Picture:
+• Frontend: The face of our application - what users see and interact with
+• Backend: The brain that processes everything
+• ML Models: The emotional intelligence center
+• Database: Our memory bank
+• External Services: Our music library (Spotify)
+
+How Information Flows:
+1. You open the app and either look at the camera or type how you're feeling
+2. This information goes to our emotion detection system
+3. The system figures out your mood
+4. Our recommendation engine finds the perfect songs
+5. You get a personalized playlist that matches your mood
+
+3.2 Frontend Architecture
+
+The frontend is like the stage where everything comes together. We've built it using Next.js 15, and here's how it's organized:
+
+Key Components:
+• Webcam Component: Handles your camera feed
+• Text Input: Where you can type your feelings
+• Playlist Display: Shows your personalized music
+• User Profile: Keeps track of your preferences
+
+Design Philosophy:
+• Clean, intuitive interface
+• Responsive on all devices
+• Quick loading times
+• Smooth transitions
+
+3.3 Backend Architecture
+
+Our backend is the powerhouse of Moodify. Built with FastAPI, it's fast, reliable, and smart:
+
+API Structure:
+• /mood - Handles mood detection and processing
+• /emotion - Manages emotion analysis
+• /spotify - Connects with Spotify
+• /music - Handles music recommendations
+• /auth - Takes care of user security
+
+Services Layer:
+• Emotion Detection Service
+• Music Recommendation Service
+• Spotify Integration Service
+• User Authentication Service
+
+3.4 Machine Learning Models
+
+This is where the magic happens. Our ML models are like emotional intelligence experts:
+
+Emotion Detection:
+• Facial Expression Analysis
+- Uses deep learning
+- Processes video in real-time
+- Identifies 7 basic emotions
+
+Text Analysis:
+• Natural Language Processing
+- Understands context
+- Handles multiple languages
+- Real-time processing
+
+3.5 Database Design
+
+Our database is like a well-organized music library. We use a combination of SQL and caching:
+
+Main Database:
+• User Profiles
+- Personal information
+- Music preferences
+- Emotion history
+
+Cache System:
+• Quick access to:
+- Recent emotions
+- Favorite songs
+- Session data
+
+The whole system is designed to be:
+• Fast and responsive
+• Reliable and stable
+• Secure and private
+• Easy to maintain and upgrade
+
+We've put a lot of thought into making each part work seamlessly with the others, just like instruments in an orchestra. This architecture allows us to process your emotions and deliver the perfect playlist in seconds.

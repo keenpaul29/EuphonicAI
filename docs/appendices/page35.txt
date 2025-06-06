@@ -1,0 +1,54 @@
+Appendix A: Technical Specifications and System Requirements
+
+1. Development Environment:
+
+a) Frontend Requirements:
+   ```json
+   {
+     "dependencies": {
+       "next": "^15.0.0",
+       "react": "^18.2.0",
+       "typescript": "^5.0.0",
+       "tailwindcss": "^3.3.0",
+       "@spotify/web-playback-sdk": "^1.0.0"
+     },
+     "engines": {
+       "node": ">=18.0.0"
+     }
+   }
+   ```
+
+b) Backend Requirements:
+   ```requirements
+   fastapi==0.100.0
+   python-multipart==0.0.6
+   tensorflow==2.13.0
+   opencv-python==4.8.0
+   deepface==0.0.79
+   spotipy==2.23.0
+   uvicorn==0.23.0
+   python-jose==3.3.0
+   ```
+
+2. System Architecture Specifications:
+
+a) Hardware Requirements:
+   ```
+   Minimum Server Specifications:
+   - CPU: 4 cores, 2.5GHz
+   - RAM: 8GB
+   - Storage: 50GB SSD
+   - GPU: NVIDIA GPU (optional)
+   
+   Recommended Specifications:
+   - CPU: 8 cores, 3.5GHz
+   - RAM: 16GB
+   - Storage: 100GB SSD
+   - GPU: NVIDIA GPU with 8GB VRAM
+   ```
+
+b) Network Requirements:
+   - Bandwidth: 10 Mbps minimum
+   - Latency: <100ms
+   - Ports: 3000, 8000
+   - SSL/TLS: Required

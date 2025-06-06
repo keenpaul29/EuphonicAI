@@ -1,0 +1,57 @@
+System Architecture Overview
+
+This chapter presents a detailed analysis of Moodify's system architecture, emphasizing the integration of multiple components for real-time emotion-aware music recommendation.
+
+1. Architectural Overview:
+
+The system implements a microservices-based architecture with the following key components:
+
+a) Client Layer:
+   - Next.js 15 frontend framework
+   - React components for UI elements
+   - WebRTC implementation for camera access
+   - Real-time emotion detection interface
+   - Spotify web playback integration
+
+b) Communication Layer:
+   - RESTful API endpoints
+   - WebSocket connections for real-time updates
+   - OAuth 2.0 authentication flow
+   - CORS middleware implementation
+   - Rate limiting mechanisms
+
+2. Core System Components:
+
+The architecture comprises several interconnected modules:
+
+a) Frontend Components:
+   - Webcam.tsx for facial analysis
+   - TextInput.tsx for sentiment analysis
+   - PlaylistDisplay.tsx for music interface
+   - Real-time emotion feedback display
+   - User preference management
+
+b) Backend Services:
+   - FastAPI application server
+   - Emotion detection pipeline
+   - Music recommendation engine
+   - Spotify API integration
+   - Authentication service
+
+3. Data Flow Architecture:
+
+The system implements a streamlined data flow:
+
+a) Input Processing:
+   - Facial expression capture
+   - Text sentiment analysis
+   - User preference collection
+   - Historical data integration
+   - Real-time state management
+
+b) Processing Pipeline:
+   - Emotion classification
+   - Music feature analysis
+   - Recommendation generation
+   - Playlist optimization
+   - Response delivery

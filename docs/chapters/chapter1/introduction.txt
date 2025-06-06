@@ -1,0 +1,57 @@
+1.1 Background
+
+Have you ever noticed how music has this amazing ability to match and uplift your mood? That's exactly what got us thinking about Moodify. In today's world, where we're constantly juggling between different emotions and situations, finding the right music can be like finding a friend who just gets you.
+
+The thing is, most music apps out there just look at what you've listened to before or what's trending. But we thought, "What if your music player could actually understand how you're feeling right now?" That's where Moodify comes in – it's like having a DJ who can read your emotions and know exactly what you need to hear.
+
+1.2 Problem Statement
+
+Let's face it – scrolling through endless playlists when you're feeling down, or trying to find the perfect pump-up song when you're hitting the gym can be frustrating. Current music platforms might know what you like, but they don't know how you feel. Plus, our emotions change throughout the day, and manually finding the right music for each mood is time-consuming and often hits or misses.
+
+The real challenge we're tackling is bridging that gap between human emotions and music selection. We want to create something that doesn't just play songs but actually understands and responds to your emotional state.
+
+1.3 Objectives
+
+Here's what we set out to achieve with Moodify:
+
+• Create a system that can accurately detect your emotions through both facial expressions and text input
+• Build a smart recommendation engine that understands the relationship between emotions and musical elements
+• Develop a user-friendly interface that makes the whole experience smooth and natural
+• Integrate with Spotify to access a vast library of songs and create personalized playlists
+• Ensure the system works in real-time and adapts as your mood changes
+
+1.4 Project Scope
+
+Moodify isn't just another music player – it's your personal emotional music companion. Here's what we've included in the project:
+
+• Real-time emotion detection using your device's camera
+• Text-based mood input for when you want to type out your feelings
+• Integration with Spotify's massive music library
+• Smart playlist generation based on your emotional state
+• User profile management to learn your preferences over time
+• Cross-platform accessibility through web browsers
+
+1.5 Technology Stack
+
+We've carefully chosen modern and reliable technologies to build Moodify:
+
+Frontend:
+• Next.js 15 for a smooth, responsive user interface
+• React with TypeScript for robust component development
+• Tailwind CSS for beautiful, responsive design
+
+Backend:
+• FastAPI for high-performance API development
+• Python for powerful data processing and ML capabilities
+• JWT for secure authentication
+
+Machine Learning:
+• TensorFlow for emotion detection models
+• DeepFace for facial analysis
+• Natural Language Processing for text sentiment analysis
+
+External Services:
+• Spotify API for music access and playback
+• Cloud hosting for reliable service delivery
+
+This combination of technologies allows us to deliver a seamless, reliable, and efficient service that can truly understand and respond to your emotional needs through music.

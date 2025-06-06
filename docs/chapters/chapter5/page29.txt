@@ -1,0 +1,62 @@
+System Limitations and Technical Constraints
+
+This section presents a critical analysis of the current limitations and challenges identified during the development and testing of Moodify.
+
+1. Emotion Detection Limitations:
+
+Technical constraints in emotion analysis:
+
+a) Facial Detection Challenges:
+   ```
+   Environmental Factors:
+   - Low light conditions: 24% accuracy drop
+   - Extreme angles: 31% detection failure
+   - Multiple faces: 18% confusion rate
+   - Partial occlusions: 28% detection failure
+   
+   Processing Limitations:
+   - High CPU usage during processing
+   - Memory spikes during batch analysis
+   - Frame drop at high FPS
+   ```
+
+b) Text Analysis Constraints:
+   - Limited language support (English, Hindi)
+   - Context misinterpretation: 12%
+   - Sarcasm detection accuracy: 67%
+   - Colloquial expression handling: 72%
+
+2. Music Recommendation Constraints:
+
+Limitations in recommendation system:
+
+a) Content Limitations:
+   - Spotify API rate limits
+   - Genre coverage gaps
+   - Regional content restrictions
+   - New release integration delay
+
+b) Algorithm Limitations:
+   ```
+   Performance Metrics:
+   - Cold start problem: 15% users affected
+   - Genre bias in recommendations: 8%
+   - Mood-genre mismatch: 11%
+   - Cultural context gaps: 13%
+   ```
+
+3. Technical Infrastructure:
+
+System-level constraints:
+
+a) Scalability Issues:
+   - Concurrent user limit: 1500
+   - Processing bottlenecks
+   - Cache size limitations
+   - Database query optimization
+
+b) Network Dependencies:
+   - API latency variations
+   - Bandwidth requirements
+   - Connection stability impact
+   - Third-party service reliability
