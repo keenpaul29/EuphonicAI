@@ -1,0 +1,92 @@
+Appendix C: Database Schemas and Data Models
+
+1. Core Database Models:
+
+a) User Model:
+   ```python
+   class User(BaseModel):
+       id: str = Field(default_factory=uuid4)
+       username: str
+       email: EmailStr
+       preferences: Dict[str, Any]
+       created_at: datetime
+       last_login: datetime
+       
+       class Config:
+           schema_extra = {
+               "example": {
+                   "username": "user123",
+                   "email": "user@example.com",
+                   "preferences": {
+                       "favorite_genres": ["pop", "rock"],
+                       "language": "en"
+                   }
+               }
+           }
+   ```
+
+b) Emotion History Model:
+   ```python
+   class EmotionRecord(BaseModel):
+       user_id: str
+       emotion: str
+       confidence: float
+       timestamp: datetime
+       source: str  # 'facial' or 'text'
+       context: Optional[Dict[str, Any]]
+       
+       class Config:
+           orm_mode = True
+   ```
+
+2. Music Related Schemas:
+
+a) Track Model:
+   ```python
+   class Track(BaseModel):
+       id: str
+       name: str
+       artist: str
+       album: str
+       duration_ms: int
+       preview_url: Optional[str]
+       features: AudioFeatures
+       
+       class Config:
+           orm_mode = True
+   ```
+
+b) Playlist Model:
+   ```python
+   class Playlist(BaseModel):
+       id: str
+       user_id: str
+       name: str
+       tracks: List[str]
+       emotion: str
+       created_at: datetime
+       updated_at: datetime
+       
+       class Config:
+           orm_mode = True
+   ```
+
+3. Authentication Models:
+
+a) Token Schema:
+   ```python
+   class Token(BaseModel):
+       access_token: str
+       token_type: str
+       expires_in: int
+       refresh_token: Optional[str]
+   ```
+
+b) OAuth State:
+   ```python
+   class OAuthState(BaseModel):
+       state: str
+       created_at: datetime
+       expires_at: datetime
+       redirect_uri: str
+   ```

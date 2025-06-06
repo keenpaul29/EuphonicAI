@@ -1,0 +1,22 @@
+ACKNOWLEDGEMENT
+
+We would like to express our heartfelt gratitude and appreciation to all those who have contributed to the successful completion of our final year project. Without their support, guidance, and encouragement, this endeavor would not have been possible.
+
+Foremost, we extend our deepest thanks to our project guide, Dr. Hasanujjaman, for his invaluable guidance, constant support, and mentorship throughout the project. His expertise, insights, and constructive feedback played a crucial role in shaping our work and ensuring its quality.
+
+We are grateful to the Department of Computer Science and Engineering, Government College of Engineering and Textile Technology, Berhampore, for providing us with the necessary resources and environment to conduct our research.
+
+Special thanks to the open-source community and the developers of various libraries and frameworks that we used in our project, particularly the FastAPI, React, and TensorFlow communities.
+
+We also thank our fellow students and friends who provided valuable suggestions and moral support throughout the development of this project.
+
+Lastly, we express our profound gratitude to our families for their unwavering support and encouragement throughout our academic journey.
+
+[Dated]
+
+Students Names:
+
+Shreyashi Das
+Sentu Naskar
+Puspal Paul
+Anwesha Mondal

@@ -1,0 +1,15 @@
+DEPARTMENT OF COMPUTER SCIENCE AND ENGINEERING
+GOV'T COLLEGE OF ENGG. & TEXTILE TECHNOLOGY
+BERHAMPORE, MURSHIDABAD-742101
+
+CERTIFICATE
+
+This is to certify that the thesis entitled "Moodify: AI-Powered Mood-Based Music Recommendation System" submitted by Roll no.: 11100121003, 11100121026, 11100121004, 11100121006 in partial fulfillment of the requirements for the award of Bachelor of Technology Degree in Computer Science and Engineering during 2021-2025 session at the Government College of Engineering and Textile Technology, Berhampore is an authentic work carried out by them under my supervision and guidance.
+
+To the best of my knowledge, the matter embodied in the thesis has not been submitted to any other University/Institute for the award of any Degree or Diploma.
+
+Date:                                                          Assistant Professor
+                                                              Dr. Hasanujjaman
+                                                              Department of Computer Science and Engineering
+                                                              Govt. College of Engineering & Textile Technology
+                                                              Berhampore, Murshidabad-742101

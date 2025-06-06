@@ -1,0 +1,42 @@
+Contents
+
+Chapter 1: Introduction                                      Page No: 1-5
+    1.1 Background
+    1.2 Problem Statement
+    1.3 Objectives
+    1.4 Project Scope
+    1.5 Technology Stack
+
+Chapter 2: Literature Review                                 Page No: 6-10
+    2.1 Existing Music Recommendation Systems
+    2.2 Emotion Detection Technologies
+    2.3 Music-Mood Correlation Studies
+    2.4 Related Works
+
+Chapter 3: System Architecture                              Page No: 11-15
+    3.1 Overall System Design
+    3.2 Frontend Architecture
+    3.3 Backend Architecture
+    3.4 Machine Learning Models
+    3.5 Database Design
+
+Chapter 4: Implementation Details                           Page No: 16-25
+    4.1 Frontend Implementation
+    4.2 Backend API Development
+    4.3 Emotion Detection System
+    4.4 Music Recommendation Engine
+    4.5 Integration with Spotify API
+
+Chapter 5: Results and Analysis                            Page No: 26-30
+    5.1 System Performance
+    5.2 Accuracy Metrics
+    5.3 User Experience Analysis
+    5.4 System Limitations
+
+Chapter 6: Conclusion and Future Scope                      Page No: 31-32
+    6.1 Conclusion
+    6.2 Future Enhancements
+
+References                                                 Page No: 33-34
+
+Appendices                                                Page No: 35-40
