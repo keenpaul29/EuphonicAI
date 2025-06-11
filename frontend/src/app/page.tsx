@@ -147,7 +147,7 @@ export default function Home() {
         {/* Header */}
         <header className="text-center space-y-4">
           <h1 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-indigo-600 dark:from-purple-400 dark:to-indigo-400">
-            Moodify
+            EuphonicAI
           </h1>
           <p className="text-gray-600 dark:text-gray-300">
             Discover music that matches your mood using AI
@@ -161,7 +161,7 @@ export default function Home() {
             <div className="space-y-2">
               <h2 className="text-2xl font-semibold">Capture Your Mood</h2>
               <p className="text-gray-600 dark:text-gray-400">
-                Take a photo to analyze your emotional state
+                Take a photo or type how you feel to analyze your emotional state
               </p>
             </div>
 
