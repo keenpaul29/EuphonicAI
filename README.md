@@ -1,7 +1,7 @@
-# Moodify: Emotional Music Companion 🎵🧠
+# EuphonicAI: Emotional Music Companion 🎵🧠
 
 ## Overview
-Moodify is an innovative music recommendation platform that curates personalized playlists based on your current emotional state. By leveraging cutting-edge machine learning and multi-modal mood detection, we provide a unique, emotionally intelligent music experience.
+EuphonicAI is an innovative music recommendation platform that curates personalized playlists based on your current emotional state. By leveraging cutting-edge machine learning and multi-modal mood detection, we provide a unique, emotionally intelligent music experience.
 
 ## 🌟 Key Features
 - **Mood Detection**
