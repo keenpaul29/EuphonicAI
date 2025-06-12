@@ -21,7 +21,7 @@ export default function PlaylistDisplay({
   playlist, 
   confidence,
   emotionScores,
-  recommendedPlaylists 
+  
 }: PlaylistDisplayProps) {
   const [showAllEmotions, setShowAllEmotions] = useState(false);
   const [currentTrack, setCurrentTrack] = useState<SpotifyTrack | null>(null);
@@ -239,7 +239,7 @@ export default function PlaylistDisplay({
           <div className="bg-white/70 dark:bg-gray-700/70 p-4 rounded-lg">
             <h4 className="font-medium mb-2">Music Science</h4>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              Research shows that listening to music releases dopamine, the "feel good" neurochemical, which can improve your mood and reduce anxiety.
+              Research shows that listening to music releases dopamine, the &quot;feel good&quot; neurochemical, which can improve your mood and reduce anxiety.
             </p>
           </div>
           <div className="bg-white/70 dark:bg-gray-700/70 p-4 rounded-lg">
