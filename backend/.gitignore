@@ -3,3 +3,6 @@ venv
 __pycache__
 moodify.log
 .cache
+.venv
+debug_*.png
+moodify.log
