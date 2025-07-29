@@ -62,4 +62,4 @@ Create `.env` files in both `frontend` and `backend` directories with:
 MIT License
 
 ## 🎨 Created by
-Your Name - Emotional Music Technology Innovator 🎧
+Puspal - ![LinkedIn](https://www.linkedin.com/in/puspal-paul/) 🎧
