@@ -1,6 +1,6 @@
-# Moodify Backend
+# EuphonicAI Backend
 
-The backend server for Moodify - an AI-powered mood-based music recommendation platform that analyzes user emotions and provides personalized music recommendations.
+The backend server for EuphonicAI - an AI-powered mood-based music recommendation platform that analyzes user emotions and provides personalized music recommendations.
 
 ## 🚀 Features
 
@@ -32,7 +32,7 @@ The backend server for Moodify - an AI-powered mood-based music recommendation p
 
 ```bash
 git clone <repository-url>
-cd moodify-new/backend
+cd EuphonicAI/backend
 ```
 
 2. **Create and activate a virtual environment**
@@ -69,7 +69,7 @@ ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 
 # Database
-DATABASE_URL=sqlite:///moodify.db
+DATABASE_URL=sqlite:///euphonicai.db
 ```
 
 ## 🚀 Running the Server
@@ -117,7 +117,7 @@ backend/
 ├── requirements.txt        # Project dependencies
 ├── start_server.bat        # Windows startup script
 ├── emotion_model.h5        # Pre-trained emotion detection model
-├── moodify.db              # SQLite database
+├── euphonicai.db           # SQLite database
 ├── datasets/               # Training and test datasets
 ├── scripts/                # Utility scripts
 └── src/                    # Source code

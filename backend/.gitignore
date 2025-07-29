@@ -6,3 +6,4 @@ moodify.log
 .venv
 debug_*.png
 moodify.log
+start_server.bat
