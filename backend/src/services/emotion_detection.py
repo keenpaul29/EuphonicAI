@@ -5,6 +5,7 @@ import cv2
 import sys
 import base64
 import io
+import os
 from PIL import Image
 from typing import Dict, Optional, Union
 from deepface import DeepFace
@@ -30,10 +31,11 @@ class EmotionDetector:
         try:
             logger.debug(f"Input image array shape: {image_array.shape}, dtype: {image_array.dtype}")
             
-            # Save debug image
-            debug_path = "debug_input.png"
-            Image.fromarray(image_array).save(debug_path)
-            logger.debug(f"Saved input image to {debug_path}")
+            debug_images = os.getenv("DEBUG_IMAGES", "false").lower() == "true"
+            if debug_images:
+                debug_path = "debug_input.png"
+                Image.fromarray(image_array).save(debug_path)
+                logger.debug(f"Saved input image to {debug_path}")
             
             # Use DeepFace for emotion detection with fallback
             try:
@@ -173,10 +175,11 @@ def decode_image(image_str: str) -> np.ndarray:
             logger.debug(f"Converting image from {image.mode} to RGB")
             image = image.convert('RGB')
         
-        # Save original image for debugging
-        debug_path = "debug_original.png"
-        image.save(debug_path)
-        logger.debug(f"Saved original image to {debug_path}")
+        debug_images = os.getenv("DEBUG_IMAGES", "false").lower() == "true"
+        if debug_images:
+            debug_path = "debug_original.png"
+            image.save(debug_path)
+            logger.debug(f"Saved original image to {debug_path}")
         
         # Ensure minimum size for face detection
         min_dimension = 480
@@ -198,10 +201,10 @@ def decode_image(image_str: str) -> np.ndarray:
         image_array = np.array(image)
         logger.debug(f"Converted to NumPy array with shape: {image_array.shape}, dtype: {image_array.dtype}")
         
-        # Save processed image for debugging
-        debug_path = "debug_processed.png"
-        Image.fromarray(image_array).save(debug_path)
-        logger.debug(f"Saved processed image to {debug_path}")
+        if debug_images:
+            debug_path = "debug_processed.png"
+            Image.fromarray(image_array).save(debug_path)
+            logger.debug(f"Saved processed image to {debug_path}")
         
         return image_array
     

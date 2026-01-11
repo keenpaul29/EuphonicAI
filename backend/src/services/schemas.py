@@ -25,18 +25,13 @@ class SpotifyTrack(BaseModel):
     """
     id: str = Field(..., description="Spotify track ID")
     name: str = Field(..., description="Track name")
-    artists: List[SpotifyArtist] = Field(..., description="List of artists")
-    mood: Optional[str] = Field(None, description="Mood associated with the track")
-    image_url: Optional[str] = Field(None, description="URL of the track's album artwork")
+    artist: str = Field(..., description="Primary artist name")
+    album_name: Optional[str] = Field(None, description="Album name")
+    album_art_url: Optional[str] = Field(None, description="URL of the track's album artwork")
     preview_url: Optional[str] = Field(None, description="URL for 30-second preview")
-    uri: str = Field(..., description="Spotify URI for the track")
-    
-    @property
-    def artist(self) -> str:
-        """
-        Get the primary artist name
-        """
-        return self.artists[0].name if self.artists else "Unknown"
+    external_url: Optional[str] = Field(None, description="Spotify external URL")
+    uri: Optional[str] = Field(None, description="Spotify URI for the track")
+    mood: Optional[str] = Field(None, description="Mood associated with the track")
     
     class Config:
         """
@@ -46,11 +41,13 @@ class SpotifyTrack(BaseModel):
             "example": {
                 "id": "5H0Yfo3acNXU278LqN47pA",
                 "name": "Happy B'Day",
-                "artists": [{"id": "0TnOYISbd1XYRBk9myaseg", "name": "D Soldierz"}],
-                "mood": "happy",
-                "image_url": "https://i.scdn.co/image/ab67616d00001e02...",
+                "artist": "D Soldierz",
+                "album_name": "Party Hits",
+                "album_art_url": "https://i.scdn.co/image/ab67616d00001e02...",
                 "preview_url": "https://p.scdn.co/mp3-preview/...",
-                "uri": "spotify:track:5H0Yfo3acNXU278LqN47pA"
+                "external_url": "https://open.spotify.com/track/...",
+                "uri": "spotify:track:5H0Yfo3acNXU278LqN47pA",
+                "mood": "happy"
             }
         }
         

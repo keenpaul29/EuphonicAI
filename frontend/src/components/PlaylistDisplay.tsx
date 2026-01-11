@@ -1,6 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { SpotifyTrack, Mood, EmotionScores } from '@/lib/api';
+import ApiClient from '@/lib/api';
+import { Play, Pause, Heart, ExternalLink, Music, Sparkles } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 interface PlaylistDisplayProps {
   mood: Mood;
@@ -21,241 +24,296 @@ export default function PlaylistDisplay({
   playlist, 
   confidence,
   emotionScores,
-  
+  recommendedPlaylists,
 }: PlaylistDisplayProps) {
-  const [showAllEmotions, setShowAllEmotions] = useState(false);
-  const [currentTrack, setCurrentTrack] = useState<SpotifyTrack | null>(null);
+  const [favorites, setFavorites] = useState<SpotifyTrack[]>([]);
+  const [playingTrack, setPlayingTrack] = useState<string | null>(null);
+  const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
 
-  const getMoodColor = (mood: Mood) => {
-    const colors = {
-      happy: 'bg-yellow-500',
-      sad: 'bg-blue-500',
-      angry: 'bg-red-500',
-      neutral: 'bg-gray-500',
-      surprised: 'bg-purple-500',
-      fearful: 'bg-indigo-500',
-      disgusted: 'bg-green-500'
+  useEffect(() => {
+    return () => {
+      if (audio) {
+        audio.pause();
+        audio.src = '';
+      }
     };
-    return colors[mood] || 'bg-gray-500';
+  }, [audio]);
+
+  const togglePlay = (track: SpotifyTrack) => {
+    if (!track.preview_url) return;
+
+    if (playingTrack === track.id) {
+      audio?.pause();
+      setPlayingTrack(null);
+    } else {
+      if (audio) {
+        audio.pause();
+      }
+      const newAudio = new Audio(track.preview_url);
+      newAudio.play();
+      newAudio.onended = () => setPlayingTrack(null);
+      setAudio(newAudio);
+      setPlayingTrack(track.id);
+    }
   };
 
-  const getMoodEmoji = (mood: string) => {
-    const emojis: { [key: string]: string } = {
-      happy: '😊',
-      sad: '😢',
-      angry: '😠',
-      neutral: '😐',
-      surprised: '😮',
-      fearful: '😨',
-      disgusted: '🤢'
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('favorites');
+      setFavorites(raw ? JSON.parse(raw) : []);
+    } catch {}
+  }, []);
+
+  const isFavorite = (id: string) => favorites.some(t => t.id === id);
+  const toggleFavorite = (track: SpotifyTrack) => {
+    const next = isFavorite(track.id)
+      ? favorites.filter(t => t.id !== track.id)
+      : [...favorites, track];
+    setFavorites(next);
+    try { localStorage.setItem('favorites', JSON.stringify(next)); } catch {}
+  };
+
+  const getMoodConfig = (mood: string) => {
+    const configs: { [key: string]: { emoji: string; color: string; gradient: string } } = {
+      happy: { 
+        emoji: '😊', 
+        color: 'text-yellow-500', 
+        gradient: 'from-yellow-400 to-orange-500' 
+      },
+      sad: { 
+        emoji: '😢', 
+        color: 'text-blue-500', 
+        gradient: 'from-blue-400 to-indigo-500' 
+      },
+      angry: { 
+        emoji: '😠', 
+        color: 'text-red-500', 
+        gradient: 'from-red-400 to-pink-500' 
+      },
+      neutral: { 
+        emoji: '😐', 
+        color: 'text-zinc-500', 
+        gradient: 'from-zinc-400 to-slate-500' 
+      },
+      surprised: { 
+        emoji: '😮', 
+        color: 'text-purple-500', 
+        gradient: 'from-purple-400 to-fuchsia-500' 
+      },
+      fearful: { 
+        emoji: '😨', 
+        color: 'text-indigo-500', 
+        gradient: 'from-indigo-400 to-purple-500' 
+      },
+      disgusted: { 
+        emoji: '🤢', 
+        color: 'text-green-500', 
+        gradient: 'from-green-400 to-emerald-500' 
+      }
     };
-    return emojis[mood] || '🎵';
+    return configs[mood] || { 
+      emoji: '🎵', 
+      color: 'text-indigo-500', 
+      gradient: 'from-indigo-400 to-purple-500' 
+    };
   };
 
-  const openInSpotify = (uri: string) => {
-    window.open(`https://open.spotify.com/track/${uri.split(':')[2]}`, '_blank');
-  };
+  const config = getMoodConfig(mood);
 
   return (
-    <div className="space-y-6">
-      {/* Emotion Scores Section */}
-      <div className="bg-white/50 dark:bg-black/50 rounded-xl p-4 space-y-4">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center space-x-4">
-            <div className={`w-16 h-16 rounded-xl ${getMoodColor(mood)} flex items-center justify-center`}>
-              <span className="text-2xl" role="img" aria-label={mood}>
-                {getMoodEmoji(mood)}
-              </span>
-            </div>
+    <div className="space-y-8">
+      {/* Enhanced Header Info */}
+      <div className="relative overflow-hidden rounded-3xl p-6 border border-zinc-200 dark:border-zinc-800">
+        <div className={`absolute inset-0 bg-gradient-to-br ${config.gradient} opacity-5 dark:opacity-10`} />
+        
+        <div className="relative flex items-center justify-between">
+          <div className="flex items-center space-x-6">
+            <motion.div 
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              className={`w-16 h-16 rounded-2xl bg-white dark:bg-zinc-800 shadow-xl flex items-center justify-center text-3xl`}
+            >
+              {config.emoji}
+            </motion.div>
             <div>
-              <h3 className="text-xl font-semibold capitalize">
-                {mood} Mood
-              </h3>
-              {confidence && (
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Confidence: {(confidence * 100).toFixed(1)}%
-                </p>
-              )}
+              <h3 className="text-2xl font-black capitalize tracking-tight">{mood} Vibe</h3>
+              <p className="text-sm text-zinc-500 font-medium">
+                {confidence ? `Detected with ${(confidence * 100).toFixed(0)}% confidence` : 'Based on your input'}
+              </p>
             </div>
           </div>
-          <button
-            onClick={() => setShowAllEmotions(!showAllEmotions)}
-            className="text-sm px-3 py-1 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
-          >
-            {showAllEmotions ? 'Hide Details' : 'Show Details'}
-          </button>
-        </div>
-
-        {/* All Emotion Scores */}
-        {showAllEmotions && emotionScores && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mt-4">
-            {Object.entries(emotionScores).map(([emotion, score]) => (
-              <div
-                key={emotion}
-                className="bg-white/50 dark:bg-gray-800/50 rounded-lg p-3 flex items-center space-x-3"
-              >
-                <span className="text-xl" role="img" aria-label={emotion}>
-                  {getMoodEmoji(emotion)}
-                </span>
-                <div>
-                  <p className="text-sm font-medium capitalize">{emotion}</p>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">
-                    {(score * 100).toFixed(1)}%
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Song Recommendations Header */}
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-bold">Recommended Songs for Your Mood</h2>
-        <div className="text-sm text-gray-600 dark:text-gray-400">
-          {playlist.length} songs found
-        </div>
-      </div>
-
-      {/* Featured Track Player (if a track is selected) */}
-      {currentTrack && (
-        <div className="bg-gradient-to-r from-purple-700/20 to-blue-700/20 rounded-xl p-6 shadow-lg">
-          <div className="flex flex-col md:flex-row gap-6 items-center">
-            {currentTrack.image_url ? (
-              <div className="flex-shrink-0 w-48 h-48 relative rounded-lg overflow-hidden shadow-md">
-                <Image
-                  src={currentTrack.image_url}
-                  alt={currentTrack.name}
-                  fill
-                  className="object-cover"
-                />
-              </div>
-            ) : (
-              <div className="flex-shrink-0 w-48 h-48 bg-gray-200 dark:bg-gray-700 rounded-lg flex items-center justify-center">
-                <span className="text-4xl">{getMoodEmoji(mood)}</span>
-              </div>
-            )}
-            
-            <div className="flex-grow space-y-4 text-center md:text-left">
-              <div>
-                <h3 className="text-2xl font-bold">{currentTrack.name}</h3>
-                <p className="text-lg text-gray-700 dark:text-gray-300">
-                  {currentTrack.artists.map(a => a.name).join(', ')}
-                </p>
-              </div>
-              
-              {currentTrack.preview_url ? (
-                <div className="w-full max-w-md">
-                  <audio
-                    controls
-                    autoPlay
-                    className="w-full"
+          
+          {emotionScores && (
+            <div className="hidden md:flex items-center gap-4">
+              {Object.entries(emotionScores)
+                .sort(([, a], [, b]) => b - a)
+                .slice(0, 3)
+                .map(([name, score], i) => (
+                  <motion.div 
+                    key={name}
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.1 }}
+                    className="flex flex-col items-center"
                   >
-                    <source src={currentTrack.preview_url} type="audio/mpeg" />
-                  </audio>
-                </div>
-              ) : (
-                <p className="text-gray-500 italic">No preview available</p>
-              )}
-              
-              <button
-                onClick={() => openInSpotify(currentTrack.uri)}
-                className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-full transition-colors flex items-center gap-2"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                  <path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0zm3.669 11.538a.498.498 0 0 1-.686.165c-1.879-1.147-4.243-1.407-7.028-.77a.499.499 0 0 1-.222-.973c3.048-.696 5.662-.397 7.77.892a.5.5 0 0 1 .166.686zm.979-2.178a.624.624 0 0 1-.858.205c-2.15-1.321-5.428-1.704-7.972-.932a.625.625 0 0 1-.362-1.194c2.905-.881 6.517-.454 8.986 1.063a.624.624 0 0 1 .206.858zm.084-2.268C10.154 5.56 5.9 5.419 3.438 6.166a.748.748 0 1 1-.434-1.432c2.825-.857 7.523-.692 10.492 1.07a.747.747 0 1 1-.764 1.288z"/>
-                </svg>
-                Open in Spotify
-              </button>
+                    <div className="text-xl font-black text-indigo-600 dark:text-indigo-400">
+                      {(score * 100).toFixed(0)}%
+                    </div>
+                    <span className="text-[10px] uppercase tracking-widest text-zinc-400 font-black">{name}</span>
+                  </motion.div>
+                ))}
             </div>
-          </div>
+          )}
         </div>
-      )}
+      </div>
 
-      {/* Song Recommendations Grid */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {playlist.map((track) => (
-          <div
+      {/* Track Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {playlist.map((track, index) => (
+          <motion.div
             key={track.id}
-            className={`bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm hover:shadow-md transition-all cursor-pointer ${currentTrack?.id === track.id ? 'ring-2 ring-purple-500 scale-102' : ''}`}
-            onClick={() => setCurrentTrack(track)}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.05 }}
+            className="group relative bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-3xl p-4 flex items-center gap-4 hover:shadow-xl hover:shadow-indigo-500/10 hover:border-indigo-500/50 transition-all duration-300"
           >
-            <div className="flex space-x-4">
-              {track.image_url ? (
-                <div className="flex-shrink-0">
-                  <Image
-                    src={track.image_url}
-                    alt={track.name}
-                    width={64}
-                    height={64}
-                    className="rounded-md"
-                  />
-                </div>
+            <div className="relative w-20 h-20 rounded-2xl overflow-hidden flex-shrink-0 shadow-lg group-hover:shadow-indigo-500/20 transition-all">
+              {track.album_art_url ? (
+                <Image
+                  src={track.album_art_url}
+                  alt={track.name}
+                  fill
+                  className="object-cover group-hover:scale-110 transition-transform duration-500"
+                />
               ) : (
-                <div className="flex-shrink-0 w-16 h-16 bg-gray-200 dark:bg-gray-700 rounded-md flex items-center justify-center">
-                  <span className="text-xl">{getMoodEmoji(mood)}</span>
+                <div className="w-full h-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+                  <Music className="w-8 h-8 text-zinc-400" />
                 </div>
               )}
-              <div className="flex-grow min-w-0">
-                <h4 className="font-semibold truncate">{track.name}</h4>
-                <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
-                  {track.artists.map(a => a.name).join(', ')}
-                </p>
-                <div className="mt-2 flex items-center gap-2">
-                  <button 
-                    className="text-xs px-2 py-1 rounded-full bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-100"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      openInSpotify(track.uri);
-                    }}
+              
+              {/* Play Overlay */}
+              {track.preview_url && (
+                <div 
+                  className={`absolute inset-0 bg-black/40 flex items-center justify-center transition-all duration-300 ${playingTrack === track.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    togglePlay(track);
+                  }}
+                >
+                  <motion.div
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-indigo-600 shadow-xl cursor-pointer"
                   >
-                    Spotify
-                  </button>
-                  {track.preview_url && (
-                    <button 
-                      className="text-xs px-2 py-1 rounded-full bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-100"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setCurrentTrack(track);
-                      }}
-                    >
-                      Preview
-                    </button>
-                  )}
+                    {playingTrack === track.id ? (
+                      <Pause className="w-5 h-5 fill-current" />
+                    ) : (
+                      <Play className="w-5 h-5 fill-current ml-1" />
+                    )}
+                  </motion.div>
                 </div>
-              </div>
+              )}
             </div>
-          </div>
+
+            <div className="flex-grow min-w-0">
+              <h4 className="font-bold text-base truncate mb-1 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                {track.name}
+              </h4>
+              <p className="text-sm text-zinc-500 font-medium truncate mb-1">{track.artist}</p>
+              {track.album_name && (
+                <div className="flex items-center text-xs text-zinc-400">
+                  <span className="truncate">{track.album_name}</span>
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={() => toggleFavorite(track)}
+                className={`p-2 rounded-xl transition-colors ${
+                  isFavorite(track.id) 
+                    ? 'bg-red-50 text-red-500 dark:bg-red-900/20' 
+                    : 'bg-zinc-50 text-zinc-400 hover:text-red-500 dark:bg-zinc-800'
+                }`}
+              >
+                <Heart className={`w-4 h-4 ${isFavorite(track.id) ? 'fill-current' : ''}`} />
+              </motion.button>
+              
+              <motion.a
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                href={track.external_url || `https://open.spotify.com/track/${track.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-2 bg-zinc-50 text-zinc-400 hover:text-indigo-600 dark:bg-zinc-800 rounded-xl transition-colors"
+              >
+                <ExternalLink className="w-4 h-4" />
+              </motion.a>
+            </div>
+          </motion.div>
         ))}
       </div>
 
-      {/* Music Mood Tips */}
-      <div className="mt-8 bg-white/50 dark:bg-gray-800/50 rounded-xl p-6">
-        <h3 className="text-xl font-semibold mb-3">Why Music Affects Your Mood</h3>
-        <p className="text-gray-700 dark:text-gray-300 mb-4">
-          Music has a profound effect on our emotions. The songs recommended above are specifically chosen to complement or enhance your current {mood} mood.
-        </p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-white/70 dark:bg-gray-700/70 p-4 rounded-lg">
-            <h4 className="font-medium mb-2">Music Science</h4>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Research shows that listening to music releases dopamine, the &quot;feel good&quot; neurochemical, which can improve your mood and reduce anxiety.
-            </p>
+      {playlist.length === 0 && (
+        <div className="text-center py-12">
+          <p className="text-zinc-500">No tracks found for this mood.</p>
+        </div>
+      )}
+
+      {/* Recommended Playlists Section */}
+      {recommendedPlaylists && recommendedPlaylists.length > 0 && (
+        <div className="pt-8 border-t border-zinc-100 dark:border-zinc-800">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-xl font-bold flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-indigo-500" />
+              Featured Playlists
+            </h3>
           </div>
-          <div className="bg-white/70 dark:bg-gray-700/70 p-4 rounded-lg">
-            <h4 className="font-medium mb-2">Mood Enhancement</h4>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              {mood === 'happy' ? 'Upbeat songs can amplify your positive feelings and energy levels.' :
-               mood === 'sad' ? 'Melancholic music can help process emotions and provide comfort.' :
-               mood === 'angry' ? 'Energetic music can help channel and release tension.' :
-               mood === 'neutral' ? 'Balanced music can help maintain focus and calm.' :
-               mood === 'surprised' ? 'Dynamic music can complement your heightened awareness.' :
-               mood === 'fearful' ? 'Soothing music can help reduce anxiety and stress.' :
-               'Music tailored to your emotional state can provide a personalized listening experience.'}
-            </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {recommendedPlaylists.map((pl, idx) => (
+              <motion.a
+                key={pl.external_url}
+                href={pl.external_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: idx * 0.1 }}
+                className="group relative bg-white dark:bg-zinc-900 rounded-3xl overflow-hidden border border-zinc-100 dark:border-zinc-800 hover:shadow-2xl hover:shadow-indigo-500/10 transition-all duration-500"
+              >
+                <div className="relative aspect-square">
+                  {pl.image_url ? (
+                    <Image
+                      src={pl.image_url}
+                      alt={pl.name}
+                      fill
+                      className="object-cover group-hover:scale-105 transition-transform duration-700"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+                      <Music className="w-12 h-12 text-zinc-400" />
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors" />
+                  <div className="absolute bottom-4 right-4 w-12 h-12 bg-white rounded-full flex items-center justify-center text-indigo-600 shadow-2xl opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300">
+                    <ExternalLink className="w-6 h-6" />
+                  </div>
+                </div>
+                <div className="p-5">
+                  <h4 className="font-bold text-lg mb-1 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors line-clamp-1">
+                    {pl.name}
+                  </h4>
+                  {pl.description && (
+                    <p className="text-sm text-zinc-500 line-clamp-2" dangerouslySetInnerHTML={{ __html: pl.description }} />
+                  )}
+                </div>
+              </motion.a>
+            ))}
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

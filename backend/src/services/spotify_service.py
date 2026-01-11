@@ -7,8 +7,6 @@ import random
 import logging
 import traceback
 
-from .schemas import SpotifyArtist
-
 logger = logging.getLogger(__name__)
 
 # Mood parameters for Spotify recommendations
@@ -107,11 +105,13 @@ LANGUAGE_CONFIGS = {
 class SpotifyTrack(NamedTuple):
     id: str
     name: str
-    artists: List[SpotifyArtist]
-    mood: str
-    uri: str
-    image_url: Optional[str] = None
+    artist: str
+    album_name: Optional[str] = None
+    album_art_url: Optional[str] = None
     preview_url: Optional[str] = None
+    external_url: Optional[str] = None
+    uri: Optional[str] = None
+    mood: Optional[str] = None
 
 class Track(NamedTuple):
     id: str
@@ -187,19 +187,23 @@ async def generate_mood_playlist(mood: str, limit: int = 10) -> List[SpotifyTrac
     :param limit: Maximum number of tracks to return
     :return: List of SpotifyTrack objects
     """
-    # Use asyncio to run the blocking Spotify API call
-    loop = asyncio.get_event_loop()
-    tracks = await loop.run_in_executor(None, _generate_mood_playlist, mood, limit)
+    # Use the MoodRecommender class for better results
+    from .recommender import MoodRecommender
+    recommender = MoodRecommender()
+    results = recommender.get_recommendations_by_mood(mood, limit)
+    
     return [
         SpotifyTrack(
-            id=track.id,
-            name=track.name,
-            artists=[SpotifyArtist(id=artist['id'], name=artist['name']) for artist in track.artists],
-            mood=track.mood,
-            uri=track.uri,
-            image_url=None,
-            preview_url=track.preview_url
-        ) for track in tracks
+            id=track['id'],
+            name=track['name'],
+            artist=track['artist'],
+            album_name=track.get('album_name'),
+            album_art_url=track.get('album_art_url'),
+            preview_url=track.get('preview_url'),
+            external_url=track.get('external_url'),
+            uri=track.get('uri'),
+            mood=mood
+        ) for track in results
     ]
 
 def _generate_mood_playlist(mood: str, limit: int = 10) -> List[Track]:
@@ -227,7 +231,7 @@ def _generate_mood_playlist(mood: str, limit: int = 10) -> List[Track]:
     
     return tracks[:limit]
 
-def search_tracks(query: str, limit: int = 10) -> List[SpotifyTrack]:
+def search_tracks(query: str, limit: int = 10, language: Optional[str] = None) -> List[SpotifyTrack]:
     """
     Search Spotify tracks based on a query.
     
@@ -236,32 +240,31 @@ def search_tracks(query: str, limit: int = 10) -> List[SpotifyTrack]:
     :return: List of SpotifyTrack objects
     """
     sp = get_spotify_client()
+
+    market = None
+    if language:
+        lang_key = language.lower()
+        market = LANGUAGE_CONFIGS.get(lang_key, LANGUAGE_CONFIGS.get('english', {})).get('market')
     
-    results = sp.search(q=query, type='track', limit=limit)
+    results = sp.search(q=query, type='track', limit=limit, market=market) if market else sp.search(q=query, type='track', limit=limit)
     
     tracks = []
     for item in results['tracks']['items']:
         # Get album image URL
-        image_url = None
+        album_art_url = None
         if item['album']['images']:
-            if len(item['album']['images']) > 1:
-                image_url = item['album']['images'][1]['url']
-            else:
-                image_url = item['album']['images'][0]['url']
+            album_art_url = item['album']['images'][0]['url']
                 
         track = SpotifyTrack(
             id=item['id'],
             name=item['name'],
-            artists=[
-                SpotifyArtist(
-                    id=artist['id'],
-                    name=artist['name']
-                ) for artist in item['artists']
-            ],
-            mood='unknown',
+            artist=item['artists'][0]['name'] if item['artists'] else "Unknown",
+            album_name=item['album']['name'],
+            album_art_url=album_art_url,
+            preview_url=item.get('preview_url'),
+            external_url=item['external_urls']['spotify'] if 'external_urls' in item else None,
             uri=item['uri'],
-            image_url=image_url,
-            preview_url=item.get('preview_url')
+            mood='unknown'
         )
         tracks.append(track)
     
@@ -440,16 +443,13 @@ async def get_tracks_from_artists(spotify: spotipy.Spotify, artist_ids: List[str
                 track = SpotifyTrack(
                     id=item['id'],
                     name=item['name'],
-                    artists=[
-                        SpotifyArtist(
-                            id=artist['id'],
-                            name=artist['name']
-                        ) for artist in item['artists']
-                    ],
-                    mood=mood,
+                    artist=item['artists'][0]['name'] if item['artists'] else "Unknown",
+                    album_name=item['album']['name'],
+                    album_art_url=image_url,
+                    preview_url=item.get('preview_url'),
+                    external_url=item['external_urls']['spotify'] if 'external_urls' in item else None,
                     uri=item['uri'],
-                    image_url=image_url,
-                    preview_url=item.get('preview_url')
+                    mood=mood
                 )
                 tracks.append(track)
         except Exception as e:
@@ -478,16 +478,13 @@ async def search_bangla_tracks(spotify: spotipy.Spotify, keywords: List[str], li
                     track = SpotifyTrack(
                         id=item['id'],
                         name=item['name'],
-                        artists=[
-                            SpotifyArtist(
-                                id=artist['id'],
-                                name=artist['name']
-                            ) for artist in item['artists']
-                        ],
-                        mood=mood,
+                        artist=item['artists'][0]['name'] if item['artists'] else "Unknown",
+                        album_name=item['album']['name'],
+                        album_art_url=image_url,
+                        preview_url=item.get('preview_url'),
+                        external_url=item['external_urls']['spotify'] if 'external_urls' in item else None,
                         uri=item['uri'],
-                        image_url=image_url,
-                        preview_url=item.get('preview_url')
+                        mood=mood
                     )
                     tracks.append(track)
         except Exception as e:
@@ -595,93 +592,26 @@ async def get_recommendations(spotify: spotipy.Spotify, lang_config: dict, mood_
             tracks = []
             for item in response['tracks']:
                 try:
-                    # Extract image URL if available
-                    image_url = None
+                    # Extract album art URL if available
+                    album_art_url = None
                     if 'album' in item and 'images' in item['album'] and item['album']['images']:
-                        image_url = item['album']['images'][0]['url']
-                    
-                    # Get preview URL
-                    preview_url = item.get('preview_url')
-                    
-                    # If preview_url is None, try to get it from the track object
-                    if preview_url is None and 'id' in item:
-                        try:
-                            track_info = spotify.track(item['id'])
-                            if track_info and 'preview_url' in track_info:
-                                preview_url = track_info['preview_url']
-                        except Exception as e:
-                            logger.warning(f"Failed to get track info for {item['id']}: {str(e)}")
-                    
-                    # Create SpotifyTrack object
+                        album_art_url = item['album']['images'][0]['url']
+                        
                     track = SpotifyTrack(
                         id=item['id'],
                         name=item['name'],
-                        artists=[
-                            SpotifyArtist(
-                                id=artist['id'],
-                                name=artist['name']
-                            ) for artist in item['artists']
-                        ],
-                        mood=mood,
+                        artist=item['artists'][0]['name'] if item['artists'] else "Unknown",
+                        album_name=item['album']['name'] if 'album' in item else None,
+                        album_art_url=album_art_url,
+                        preview_url=item.get('preview_url'),
+                        external_url=item['external_urls']['spotify'] if 'external_urls' in item else None,
                         uri=item['uri'],
-                        image_url=image_url,
-                        preview_url=preview_url
+                        mood=mood
                     )
                     tracks.append(track)
-                except Exception as e:
-                    logger.warning(f"Failed to process track {item.get('id', 'unknown')}: {str(e)}")
+                except Exception as track_err:
+                    logger.error(f"Error processing track item: {str(track_err)}")
                     continue
-            
-            # If we got fewer tracks than requested, try to get more with different parameters
-            if len(tracks) < limit:
-                logger.warning(f"Only got {len(tracks)} tracks, trying with different parameters")
-                # Try with different seed genres
-                alt_params = params.copy()
-                alt_params['seed_genres'] = ['pop', 'rock', 'electronic'][:5 - len(params.get('seed_artists', [])) - len(params.get('seed_tracks', []))]
-                if 'seed_artists' in alt_params:
-                    del alt_params['seed_artists']
-                if 'seed_tracks' in alt_params:
-                    del alt_params['seed_tracks']
-                
-                try:
-                    alt_response = spotify.recommendations(**alt_params)
-                    if alt_response and 'tracks' in alt_response:
-                        for item in alt_response['tracks']:
-                            # Skip tracks we already have
-                            if any(t.id == item['id'] for t in tracks):
-                                continue
-                                
-                            try:
-                                # Extract image URL if available
-                                image_url = None
-                                if 'album' in item and 'images' in item['album'] and item['album']['images']:
-                                    image_url = item['album']['images'][0]['url']
-                                
-                                # Create SpotifyTrack object
-                                track = SpotifyTrack(
-                                    id=item['id'],
-                                    name=item['name'],
-                                    artists=[
-                                        SpotifyArtist(
-                                            id=artist['id'],
-                                            name=artist['name']
-                                        ) for artist in item['artists']
-                                    ],
-                                    mood=mood,
-                                    uri=item['uri'],
-                                    image_url=image_url,
-                                    preview_url=item.get('preview_url')
-                                )
-                                tracks.append(track)
-                                
-                                # Stop if we have enough tracks
-                                if len(tracks) >= limit:
-                                    break
-                            except Exception as e:
-                                logger.warning(f"Failed to process alt track {item.get('id', 'unknown')}: {str(e)}")
-                                continue
-                except Exception as e:
-                    logger.warning(f"Failed to get alternative recommendations: {str(e)}")
             
             return tracks
             
@@ -902,7 +832,6 @@ def generate_mock_tracks(mood: str, limit: int = 10) -> List[SpotifyTrack]:
     for i in range(limit):
         # Select random artist from the mood's artist list
         artist = random.choice(mock_artists[mood_key])
-        artist_obj = SpotifyArtist(id=artist['id'], name=artist['name'])
         
         # Select random title from the mood's title list
         title = random.choice(mock_titles[mood_key])
@@ -914,11 +843,13 @@ def generate_mock_tracks(mood: str, limit: int = 10) -> List[SpotifyTrack]:
         track = SpotifyTrack(
             id=track_id,
             name=f"{title} {i+1}",
-            artists=[artist_obj],
-            mood=mood_key,
+            artist=artist['name'],
+            album_name=f"{title} Album",
+            album_art_url=f"https://via.placeholder.com/300?text={title}",
+            preview_url=None,
+            external_url="https://spotify.com",
             uri=f"spotify:track:{track_id}",
-            image_url=None,
-            preview_url=None
+            mood=mood_key
         )
         
         tracks.append(track)

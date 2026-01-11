@@ -1,0 +1,7 @@
+.cache
+*.log
+debug_*.png
+backend/.env
+backend/moodify.log
+frontend/.next
+node_modules

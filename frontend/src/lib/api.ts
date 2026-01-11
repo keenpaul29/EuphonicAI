@@ -49,11 +49,12 @@ export interface SpotifyArtist {
 export interface SpotifyTrack {
   id: string;
   name: string;
-  artists: SpotifyArtist[];
-  mood: string;
-  uri: string;
-  image_url?: string;
+  artist: string;
+  album_name?: string;
+  album_art_url?: string;
   preview_url?: string;
+  external_url?: string;
+  uri?: string;
 }
 
 export interface EmotionDetectionResponse {
@@ -86,6 +87,22 @@ export interface TextAnalysisResponse {
 // API Client
 class ApiClient {
   private static client = axiosInstance;
+  private static tokenProvider: (() => Promise<string | null>) | null = null;
+  static setAuthTokenProvider(provider: () => Promise<string | null>) {
+    this.tokenProvider = provider;
+    axiosInstance.interceptors.request.use(async (request) => {
+      try {
+        if (this.tokenProvider) {
+          const token = await this.tokenProvider();
+          if (token) {
+            request.headers = (request.headers ?? {}) as Record<string, string>;
+            (request.headers as Record<string, string>).Authorization = `Bearer ${token}`;
+          }
+        }
+      } catch {}
+      return request;
+    });
+  }
 
   static async detectEmotion(imageBase64: string, language?: string): Promise<EmotionDetectionResponse> {
     try {
@@ -168,6 +185,42 @@ class ApiClient {
       return response.data.tracks;
     } catch (error) {
       console.error('Error fetching Spotify playlists:', error);
+      return [];
+    }
+  }
+
+  static async searchTracks(query: string, limit: number = 10, language?: string): Promise<SpotifyTrack[]> {
+    try {
+      const response = await this.client.get(`/api/spotify/search`, {
+        params: { query, limit, language }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error searching tracks:', error);
+      return [];
+    }
+  }
+
+  static async getTracksByIds(ids: string[]): Promise<SpotifyTrack[]> {
+    try {
+      const response = await this.client.get(`/api/spotify/tracks`, {
+        params: { ids: ids.join(',') }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching tracks by IDs:', error);
+      return [];
+    }
+  }
+
+  static async getSimilarSongs(trackId: string, limit: number = 6): Promise<Array<{ id: string; name: string; artist: string; similarity: number; preview_url?: string; external_url: string }>> {
+    try {
+      const response = await this.client.get(`/api/music/recommendations/similar/${trackId}`, {
+        params: { limit }
+      });
+      return response.data.similar_songs || [];
+    } catch (error) {
+      console.error('Error fetching similar songs:', error);
       return [];
     }
   }

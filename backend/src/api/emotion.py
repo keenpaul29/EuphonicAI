@@ -4,7 +4,7 @@ import numpy as np
 import base64
 import cv2
 from src.services.emotion_detection import EmotionDetector, decode_image
-from src.services.spotify_service import fetch_random_tracks, get_supported_languages as get_spotify_languages, SpotifyTrack, SpotifyArtist, get_spotify_client
+from src.services.spotify_service import fetch_random_tracks, get_supported_languages as get_spotify_languages, SpotifyTrack , get_spotify_client
 import logging
 import traceback
 
