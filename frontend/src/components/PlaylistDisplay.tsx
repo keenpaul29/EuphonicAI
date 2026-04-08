@@ -1,9 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
 import { SpotifyTrack, Mood, EmotionScores } from '@/lib/api';
 import ApiClient from '@/lib/api';
 import { Play, Pause, Heart, ExternalLink, Music, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
+import DOMPurify from 'isomorphic-dompurify';
+
+const SANITIZE_CONFIG = {
+  ALLOWED_TAGS: ['a', 'b', 'i', 'em', 'strong', 'br'],
+  ALLOWED_ATTR: ['href', 'target', 'rel'],
+};
 
 interface PlaylistDisplayProps {
   mood: Mood;
@@ -19,9 +25,9 @@ interface PlaylistDisplayProps {
   }[];
 }
 
-export default function PlaylistDisplay({ 
-  mood, 
-  playlist, 
+export default function PlaylistDisplay({
+  mood,
+  playlist,
   confidence,
   emotionScores,
   recommendedPlaylists,
@@ -75,60 +81,69 @@ export default function PlaylistDisplay({
 
   const getMoodConfig = (mood: string) => {
     const configs: { [key: string]: { emoji: string; color: string; gradient: string } } = {
-      happy: { 
-        emoji: '😊', 
-        color: 'text-yellow-500', 
-        gradient: 'from-yellow-400 to-orange-500' 
+      happy: {
+        emoji: '😊',
+        color: 'text-yellow-500',
+        gradient: 'from-yellow-400 to-orange-500'
       },
-      sad: { 
-        emoji: '😢', 
-        color: 'text-blue-500', 
-        gradient: 'from-blue-400 to-indigo-500' 
+      sad: {
+        emoji: '😢',
+        color: 'text-blue-500',
+        gradient: 'from-blue-400 to-indigo-500'
       },
-      angry: { 
-        emoji: '😠', 
-        color: 'text-red-500', 
-        gradient: 'from-red-400 to-pink-500' 
+      angry: {
+        emoji: '😠',
+        color: 'text-red-500',
+        gradient: 'from-red-400 to-pink-500'
       },
-      neutral: { 
-        emoji: '😐', 
-        color: 'text-zinc-500', 
-        gradient: 'from-zinc-400 to-slate-500' 
+      neutral: {
+        emoji: '😐',
+        color: 'text-zinc-500',
+        gradient: 'from-zinc-400 to-slate-500'
       },
-      surprised: { 
-        emoji: '😮', 
-        color: 'text-purple-500', 
-        gradient: 'from-purple-400 to-fuchsia-500' 
+      surprised: {
+        emoji: '😮',
+        color: 'text-purple-500',
+        gradient: 'from-purple-400 to-fuchsia-500'
       },
-      fearful: { 
-        emoji: '😨', 
-        color: 'text-indigo-500', 
-        gradient: 'from-indigo-400 to-purple-500' 
+      fearful: {
+        emoji: '😨',
+        color: 'text-indigo-500',
+        gradient: 'from-indigo-400 to-purple-500'
       },
-      disgusted: { 
-        emoji: '🤢', 
-        color: 'text-green-500', 
-        gradient: 'from-green-400 to-emerald-500' 
+      disgusted: {
+        emoji: '🤢',
+        color: 'text-green-500',
+        gradient: 'from-green-400 to-emerald-500'
       }
     };
-    return configs[mood] || { 
-      emoji: '🎵', 
-      color: 'text-indigo-500', 
-      gradient: 'from-indigo-400 to-purple-500' 
+    return configs[mood] || {
+      emoji: '🎵',
+      color: 'text-indigo-500',
+      gradient: 'from-indigo-400 to-purple-500'
     };
   };
 
   const config = getMoodConfig(mood);
+
+  const sanitizedPlaylists = useMemo(() => {
+    return recommendedPlaylists?.map(pl => ({
+      ...pl,
+      sanitizedDescription: pl.description
+        ? DOMPurify.sanitize(pl.description, SANITIZE_CONFIG)
+        : undefined
+    }));
+  }, [recommendedPlaylists]);
 
   return (
     <div className="space-y-8">
       {/* Enhanced Header Info */}
       <div className="relative overflow-hidden rounded-3xl p-6 border border-zinc-200 dark:border-zinc-800">
         <div className={`absolute inset-0 bg-gradient-to-br ${config.gradient} opacity-5 dark:opacity-10`} />
-        
+
         <div className="relative flex items-center justify-between">
           <div className="flex items-center space-x-6">
-            <motion.div 
+            <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               className={`w-16 h-16 rounded-2xl bg-white dark:bg-zinc-800 shadow-xl flex items-center justify-center text-3xl`}
@@ -142,14 +157,14 @@ export default function PlaylistDisplay({
               </p>
             </div>
           </div>
-          
+
           {emotionScores && (
             <div className="hidden md:flex items-center gap-4">
               {Object.entries(emotionScores)
                 .sort(([, a], [, b]) => b - a)
                 .slice(0, 3)
                 .map(([name, score], i) => (
-                  <motion.div 
+                  <motion.div
                     key={name}
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
@@ -190,10 +205,10 @@ export default function PlaylistDisplay({
                   <Music className="w-8 h-8 text-zinc-400" />
                 </div>
               )}
-              
+
               {/* Play Overlay */}
               {track.preview_url && (
-                <div 
+                <div
                   className={`absolute inset-0 bg-black/40 flex items-center justify-center transition-all duration-300 ${playingTrack === track.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
                   onClick={(e) => {
                     e.stopPropagation();
@@ -233,14 +248,14 @@ export default function PlaylistDisplay({
                 whileTap={{ scale: 0.9 }}
                 onClick={() => toggleFavorite(track)}
                 className={`p-2 rounded-xl transition-colors ${
-                  isFavorite(track.id) 
-                    ? 'bg-red-50 text-red-500 dark:bg-red-900/20' 
+                  isFavorite(track.id)
+                    ? 'bg-red-50 text-red-500 dark:bg-red-900/20'
                     : 'bg-zinc-50 text-zinc-400 hover:text-red-500 dark:bg-zinc-800'
                 }`}
               >
                 <Heart className={`w-4 h-4 ${isFavorite(track.id) ? 'fill-current' : ''}`} />
               </motion.button>
-              
+
               <motion.a
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
@@ -272,7 +287,7 @@ export default function PlaylistDisplay({
             </h3>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {recommendedPlaylists.map((pl, idx) => (
+            {sanitizedPlaylists?.map((pl, idx) => (
               <motion.a
                 key={pl.external_url}
                 href={pl.external_url}
@@ -305,8 +320,13 @@ export default function PlaylistDisplay({
                   <h4 className="font-bold text-lg mb-1 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors line-clamp-1">
                     {pl.name}
                   </h4>
-                  {pl.description && (
-                    <p className="text-sm text-zinc-500 line-clamp-2" dangerouslySetInnerHTML={{ __html: pl.description }} />
+                  {pl.sanitizedDescription && (
+                    <p
+                      className="text-sm text-zinc-500 line-clamp-2"
+                      dangerouslySetInnerHTML={{
+                        __html: pl.sanitizedDescription
+                      }}
+                    />
                   )}
                 </div>
               </motion.a>
