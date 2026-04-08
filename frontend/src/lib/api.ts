@@ -95,10 +95,7 @@ class ApiClient {
         if (this.tokenProvider) {
           const token = await this.tokenProvider();
           if (token) {
-            if (!request.headers) {
-              request.headers = {} as any;
-            }
-            request.headers.Authorization = `Bearer ${token}`;
+            request.headers.set('Authorization', `Bearer ${token}`);
           }
         }
       } catch {}
