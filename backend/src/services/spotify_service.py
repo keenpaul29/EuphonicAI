@@ -1,3 +1,18 @@
+"""
+Spotify Integration Service
+
+This module handles communication with the Spotify Web API to fetch track recommendations
+based on detected emotions/moods. It includes sophisticated logic to map abstract human
+emotions to Spotify's technical audio features (valence, energy, tempo, danceability)
+and supports localized recommendations based on language/market preferences.
+
+Key Architectural Decisions:
+1. Fallback Mechanisms: The API has a robust `generate_mock_tracks` system. If rate limits
+   are hit or the API fails, the service gracefully degrades to mock data instead of crashing.
+2. Market Filtering: Uses Spotify's 'market' parameters and localized seed artists to
+   ensure recommendations are culturally relevant to the user.
+"""
+
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
 import os
