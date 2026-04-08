@@ -58,7 +58,7 @@ export default function Webcam({ onCapture, onError, onReady }: WebcamProps) {
           aspectRatio: 16/9,
         }}
         onUserMedia={handleUserMedia}
-        onUserMediaError={(error) => onError(error.message)}
+        onUserMediaError={(error) => onError(typeof error === 'string' ? error : error?.message || 'Webcam error')}
         mirrored
         className="w-full h-full object-cover"
       />

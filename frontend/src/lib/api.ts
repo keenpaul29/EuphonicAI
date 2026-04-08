@@ -95,8 +95,10 @@ class ApiClient {
         if (this.tokenProvider) {
           const token = await this.tokenProvider();
           if (token) {
-            request.headers = (request.headers ?? {}) as Record<string, string>;
-            (request.headers as Record<string, string>).Authorization = `Bearer ${token}`;
+            if (!request.headers) {
+              request.headers = {} as any;
+            }
+            request.headers.Authorization = `Bearer ${token}`;
           }
         }
       } catch {}
