@@ -1,3 +1,18 @@
+"""
+Spotify Integration Service
+
+This module handles communication with the Spotify Web API to fetch track recommendations
+based on detected emotions/moods. It includes sophisticated logic to map abstract human
+emotions to Spotify's technical audio features (valence, energy, tempo, danceability)
+and supports localized recommendations based on language/market preferences.
+
+Key Architectural Decisions:
+1. Fallback Mechanisms: The API has a robust `generate_mock_tracks` system. If rate limits
+   are hit or the API fails, the service gracefully degrades to mock data instead of crashing.
+2. Market Filtering: Uses Spotify's 'market' parameters and localized seed artists to
+   ensure recommendations are culturally relevant to the user.
+"""
+
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
 import os
@@ -129,44 +144,44 @@ def get_spotify_client():
     try:
         client_id = os.getenv('SPOTIFY_CLIENT_ID')
         client_secret = os.getenv('SPOTIFY_CLIENT_SECRET')
-
+        
         # Log credential presence without revealing actual values
         logger.info(f"Spotify credentials present: Client ID: {bool(client_id)}, Client Secret: {bool(client_secret)}")
-
+        
         if not client_id or not client_secret:
             logger.error("Spotify credentials not found in environment variables")
             return None
-
+            
         # Remove any whitespace that might have been included in the environment variables
         client_id = client_id.strip()
         client_secret = client_secret.strip()
-
+        
         logger.info("Initializing Spotify client...")
-
+        
         try:
             # Create the client credentials manager
             client_credentials_manager = SpotifyClientCredentials(
-                client_id=client_id,
+                client_id=client_id, 
                 client_secret=client_secret
             )
-
+            
             # Create the Spotify client
             client = spotipy.Spotify(
                 client_credentials_manager=client_credentials_manager,
                 requests_timeout=15,  # Increased timeout
                 retries=5             # Increased retries
             )
-
+            
             # Test with a simple search query first
             logger.debug("Testing Spotify client with search query...")
             search_result = client.search(q='test', limit=1, type='track')
             if not search_result or 'tracks' not in search_result:
                 logger.error("Spotify search test failed: Invalid response format")
                 return None
-
+                
             logger.info("Successfully initialized Spotify client")
             return client
-
+            
         except Exception as e:
             logger.error(f"Failed to authenticate with Spotify: {str(e)}")
             logger.error("Please check if your Spotify API credentials are valid")
@@ -174,7 +189,7 @@ def get_spotify_client():
                 logger.error(f"Response status: {e.response.status_code}")
                 logger.error(f"Response text: {e.response.text}")
             return None
-
+        
     except Exception as e:
         logger.error(f"Failed to initialize Spotify client: {str(e)}")
         return None
@@ -182,7 +197,7 @@ def get_spotify_client():
 async def generate_mood_playlist(mood: str, limit: int = 10) -> List[SpotifyTrack]:
     """
     Generate a playlist based on the given mood.
-
+    
     :param mood: Emotional state to generate playlist for
     :param limit: Maximum number of tracks to return
     :return: List of SpotifyTrack objects
@@ -191,7 +206,7 @@ async def generate_mood_playlist(mood: str, limit: int = 10) -> List[SpotifyTrac
     from .recommender import MoodRecommender
     recommender = MoodRecommender()
     results = recommender.get_recommendations_by_mood(mood, limit)
-
+    
     return [
         SpotifyTrack(
             id=track['id'],
@@ -209,14 +224,14 @@ async def generate_mood_playlist(mood: str, limit: int = 10) -> List[SpotifyTrac
 def _generate_mood_playlist(mood: str, limit: int = 10) -> List[Track]:
     """
     Synchronous implementation of playlist generation.
-
+    
     :param mood: Emotional state to generate playlist for
     :param limit: Maximum number of tracks to return
     :return: List of Track objects
     """
     # Use recommendations API to get mood-based tracks
     spotify_tracks = fetch_random_tracks(mood, limit)
-
+    
     # Convert SpotifyTrack to Track objects
     tracks = [
         Track(
@@ -228,13 +243,13 @@ def _generate_mood_playlist(mood: str, limit: int = 10) -> List[Track]:
             uri=track.uri
         ) for track in spotify_tracks
     ]
-
+    
     return tracks[:limit]
 
 def search_tracks(query: str, limit: int = 10, language: Optional[str] = None) -> List[SpotifyTrack]:
     """
     Search Spotify tracks based on a query.
-
+    
     :param query: Search query
     :param limit: Maximum number of tracks to return
     :return: List of SpotifyTrack objects
@@ -245,16 +260,16 @@ def search_tracks(query: str, limit: int = 10, language: Optional[str] = None) -
     if language:
         lang_key = language.lower()
         market = LANGUAGE_CONFIGS.get(lang_key, LANGUAGE_CONFIGS.get('english', {})).get('market')
-
+    
     results = sp.search(q=query, type='track', limit=limit, market=market) if market else sp.search(q=query, type='track', limit=limit)
-
+    
     tracks = []
     for item in results['tracks']['items']:
         # Get album image URL
         album_art_url = None
         if item['album']['images']:
             album_art_url = item['album']['images'][0]['url']
-
+                
         track = SpotifyTrack(
             id=item['id'],
             name=item['name'],
@@ -267,7 +282,7 @@ def search_tracks(query: str, limit: int = 10, language: Optional[str] = None) -
             mood='unknown'
         )
         tracks.append(track)
-
+    
     return tracks
 
 LANGUAGE_CONFIGS = {
@@ -404,7 +419,7 @@ async def find_bangla_artists(spotify: spotipy.Spotify, mood: str, limit: int = 
         f'bangladeshi {mood}',
         f'bangla {mood} band'
     ]
-
+    
     try:
         for term in search_terms:
             results = spotify.search(q=term, type='artist', limit=limit, market='BD')
@@ -412,7 +427,7 @@ async def find_bangla_artists(spotify: spotipy.Spotify, mood: str, limit: int = 
                 # Check if artist has sufficient popularity and followers
                 if artist['popularity'] > 20 and artist['followers']['total'] > 1000:
                     artists.add(artist['id'])
-
+                    
                     # Get related artists
                     try:
                         related = spotify.artist_related_artists(artist['id'])
@@ -422,13 +437,13 @@ async def find_bangla_artists(spotify: spotipy.Spotify, mood: str, limit: int = 
                     except Exception as e:
                         logger.error(f"Error getting related artists: {str(e)}")
                         continue
-
+                        
             if len(artists) >= limit:
                 break
-
+                
     except Exception as e:
         logger.error(f"Error searching for artists: {str(e)}")
-
+        
     return list(artists)[:limit]
 
 async def get_tracks_from_artists(spotify: spotipy.Spotify, artist_ids: List[str], limit: int, mood: str) -> List[SpotifyTrack]:
@@ -455,7 +470,7 @@ async def get_tracks_from_artists(spotify: spotipy.Spotify, artist_ids: List[str
         except Exception as e:
             logger.error(f"Failed to get tracks for artist {artist_id}: {str(e)}")
             continue
-
+    
     random.shuffle(tracks)
     return tracks[:limit]
 
@@ -470,7 +485,7 @@ async def search_bangla_tracks(spotify: spotipy.Spotify, keywords: List[str], li
                 f"bangladeshi {keyword}",
                 f"bengali {keyword} music"
             ]
-
+            
             for query in search_queries:
                 results = spotify.search(q=query, type='track', limit=limit, market='BD')
                 for item in results['tracks']['items']:
@@ -490,123 +505,105 @@ async def search_bangla_tracks(spotify: spotipy.Spotify, keywords: List[str], li
         except Exception as e:
             logger.error(f"Failed to search with keyword {keyword}: {str(e)}")
             continue
-
+    
     random.shuffle(tracks)
     return tracks[:limit]
-
-def _prepare_audio_params(mood_config: dict) -> dict:
-    """Prepare audio feature parameters for Spotify recommendations API."""
-    params = {}
-
-    # Add audio features based on mood config
-    for key, value in mood_config.items():
-        # Skip seeds and non-audio feature keys
-        if key not in ['seed_genres', 'bangla_keywords']:
-            params[key] = value
-
-    # Apply random uniform sampling for target ranges if they exist
-    if 'target_valence' in mood_config and isinstance(mood_config['target_valence'], (tuple, list)):
-        params['target_valence'] = random.uniform(*mood_config['target_valence'])
-    if 'target_energy' in mood_config and isinstance(mood_config['target_energy'], (tuple, list)):
-        params['target_energy'] = random.uniform(*mood_config['target_energy'])
-
-    return params
-
-def _prepare_seed_params(lang_config: dict, mood_config: dict) -> dict:
-    """Prepare seed parameters (genres, artists, tracks) for Spotify recommendations API."""
-    seed_params = {}
-
-    # Prepare seed items (Spotify requires at least one seed type)
-    seed_genres = mood_config.get('seed_genres', ['pop'])[:2]  # Use at most 2 seed genres
-    seed_artists = []
-    seed_tracks = []
-
-    # Add seed artists if available
-    if 'seed_artists' in lang_config and lang_config['seed_artists']:
-        # Use 1-2 seed artists
-        seed_artists = random.sample(lang_config['seed_artists'],
-                                   min(2, len(lang_config['seed_artists'])))
-
-    # Add seed tracks if available
-    if 'seed_tracks' in lang_config and lang_config['seed_tracks']:
-        # Use 1-2 seed tracks
-        seed_tracks = random.sample(lang_config['seed_tracks'],
-                                  min(2, len(lang_config['seed_tracks'])))
-
-    # Ensure we don't exceed 5 seed items total (Spotify API limit)
-    # and have at least one seed
-    seed_count = len(seed_genres) + len(seed_artists) + len(seed_tracks)
-
-    if seed_count > 5:
-        # Prioritize different seed types based on availability
-        if len(seed_genres) > 0 and len(seed_artists) > 0 and len(seed_tracks) > 0:
-            # We have all three types, keep at least one of each
-            remaining = 2
-            seed_genres = seed_genres[:1]
-            seed_artists = seed_artists[:1]
-            seed_tracks = seed_tracks[:1]
-
-            # Distribute remaining slots
-            if remaining > 0 and len(lang_config.get('seed_tracks', [])) > 1:
-                seed_tracks.append(lang_config['seed_tracks'][1])
-                remaining -= 1
-            if remaining > 0 and len(mood_config.get('seed_genres', [])) > 1:
-                seed_genres.append(mood_config['seed_genres'][1])
-        else:
-            # Reduce each category proportionally
-            if len(seed_genres) > 2:
-                seed_genres = seed_genres[:2]
-            if len(seed_artists) > 2:
-                seed_artists = seed_artists[:2]
-            if len(seed_tracks) > 1:
-                seed_tracks = seed_tracks[:1]
-
-    # If we have no seeds at all, use a default genre
-    if len(seed_genres) + len(seed_artists) + len(seed_tracks) == 0:
-        seed_genres = ['pop']
-
-    # Add seeds to parameters
-    if seed_genres:
-        seed_params['seed_genres'] = seed_genres
-    if seed_artists:
-        seed_params['seed_artists'] = seed_artists
-    if seed_tracks:
-        seed_params['seed_tracks'] = seed_tracks
-
-    return seed_params
 
 async def get_recommendations(spotify: spotipy.Spotify, lang_config: dict, mood_config: dict, limit: int, mood: str) -> List[SpotifyTrack]:
     # Get tracks using Spotify's recommendation API.
     try:
         logger.info(f"Getting recommendations for mood: {mood}, language config: {lang_config['market']}")
-
-        # Prepare base parameters
+        
+        # Prepare parameters for the recommendations API
         params = {
             'limit': limit,
             'market': lang_config.get('market', 'US'),
         }
-
+        
         # Add audio features based on mood
-        audio_params = _prepare_audio_params(mood_config)
-        params.update(audio_params)
-        logger.debug(f"Audio feature parameters: {audio_params}")
-
-        # Prepare seed items
-        seed_params = _prepare_seed_params(lang_config, mood_config)
-        params.update(seed_params)
-        logger.info(f"Final recommendation seeds: {seed_params}")
+        for key, value in mood_config.items():
+            if key != 'seed_genres':  # Handle seed_genres separately
+                params[key] = value
+                
+        logger.debug(f"Audio feature parameters: {params}")
+        
+        # Prepare seed items (Spotify requires at least one seed type)
+        seed_genres = mood_config.get('seed_genres', ['pop'])[:2]  # Use at most 2 seed genres
+        seed_artists = []
+        seed_tracks = []
+        
+        # Add seed artists if available
+        if 'seed_artists' in lang_config and lang_config['seed_artists']:
+            # Use 1-2 seed artists
+            seed_artists = random.sample(lang_config['seed_artists'], 
+                                       min(2, len(lang_config['seed_artists'])))
+        
+        # Add seed tracks if available
+        if 'seed_tracks' in lang_config and lang_config['seed_tracks']:
+            # Use 1-2 seed tracks
+            seed_tracks = random.sample(lang_config['seed_tracks'], 
+                                      min(2, len(lang_config['seed_tracks'])))
+        
+        # Ensure we don't exceed 5 seed items total (Spotify API limit)
+        # and have at least one seed
+        seed_count = len(seed_genres) + len(seed_artists) + len(seed_tracks)
+        
+        if seed_count > 5:
+            # Prioritize different seed types based on availability
+            if len(seed_genres) > 0 and len(seed_artists) > 0 and len(seed_tracks) > 0:
+                # We have all three types, keep at least one of each
+                remaining = 2
+                seed_genres = seed_genres[:1]
+                seed_artists = seed_artists[:1]
+                seed_tracks = seed_tracks[:1]
+                
+                # Distribute remaining slots
+                if remaining > 0 and len(lang_config.get('seed_tracks', [])) > 1:
+                    seed_tracks.append(lang_config['seed_tracks'][1])
+                    remaining -= 1
+                if remaining > 0 and len(mood_config.get('seed_genres', [])) > 1:
+                    seed_genres.append(mood_config['seed_genres'][1])
+            else:
+                # Reduce each category proportionally
+                if len(seed_genres) > 2:
+                    seed_genres = seed_genres[:2]
+                if len(seed_artists) > 2:
+                    seed_artists = seed_artists[:2]
+                if len(seed_tracks) > 1:
+                    seed_tracks = seed_tracks[:1]
+        
+        # If we have no seeds at all, use a default genre
+        if len(seed_genres) + len(seed_artists) + len(seed_tracks) == 0:
+            seed_genres = ['pop']
+            
+        # Add seeds to parameters
+        if seed_genres:
+            params['seed_genres'] = seed_genres
+        if seed_artists:
+            params['seed_artists'] = seed_artists
+        if seed_tracks:
+            params['seed_tracks'] = seed_tracks
+            
+        logger.info(f"Final recommendation parameters: seed_genres={seed_genres}, "
+                   f"seed_artists={seed_artists}, seed_tracks={seed_tracks}")
+            
+        # Add audio feature targets
+        if 'target_valence' in mood_config:
+            params['target_valence'] = random.uniform(*mood_config['target_valence'])
+        if 'target_energy' in mood_config:
+            params['target_energy'] = random.uniform(*mood_config['target_energy'])
         # Make the API call
         logger.debug(f"Calling Spotify recommendations API with params: {params}")
         try:
             response = spotify.recommendations(**params)
-
+            
             if not response or 'tracks' not in response:
                 logger.error(f"Invalid response from Spotify recommendations API: {response}")
                 return []
-
+                
             # Log successful response
             logger.info(f"Received {len(response['tracks'])} tracks from Spotify recommendations API")
-
+                
             tracks = []
             for item in response['tracks']:
                 try:
@@ -614,7 +611,7 @@ async def get_recommendations(spotify: spotipy.Spotify, lang_config: dict, mood_
                     album_art_url = None
                     if 'album' in item and 'images' in item['album'] and item['album']['images']:
                         album_art_url = item['album']['images'][0]['url']
-
+                        
                     track = SpotifyTrack(
                         id=item['id'],
                         name=item['name'],
@@ -630,16 +627,16 @@ async def get_recommendations(spotify: spotipy.Spotify, lang_config: dict, mood_
                 except Exception as track_err:
                     logger.error(f"Error processing track item: {str(track_err)}")
                     continue
-
+            
             return tracks
-
+            
         except Exception as e:
             logger.error(f"Error calling Spotify recommendations API: {str(e)}")
             if hasattr(e, 'response') and e.response:
                 logger.error(f"Response status: {e.response.status_code}")
                 logger.error(f"Response text: {e.response.text}")
             return []
-
+        
     except Exception as e:
         logger.error(f"HTTP Error for GET to {spotify.recommendations.url} with Params: {params} returned {getattr(e, 'http_status', 'Unknown')} due to {getattr(e, 'msg', str(e))}")
         logger.error(f"Error getting recommendations: {str(e)}")
@@ -649,12 +646,12 @@ async def fetch_random_tracks(mood: str, limit: int = 10, language: str = None) 
     """
     Fetch random tracks based on a mood and language using Spotify's recommendations API.
     If Spotify API fails, returns mock data.
-
+    
     Args:
         mood (str): Mood to generate playlist for
         limit (int, optional): Maximum number of tracks to return. Defaults to 10.
         language (str, optional): Language preference for tracks. Defaults to None.
-
+    
     Returns:
         List[SpotifyTrack]: List of tracks matching the mood
     """
@@ -663,11 +660,11 @@ async def fetch_random_tracks(mood: str, limit: int = 10, language: str = None) 
         if not spotify:
             logger.warning("Spotify client not available, using mock data")
             return generate_mock_tracks(mood, limit)
-
+            
         # Get language config
         lang_config = LANGUAGE_CONFIGS.get(language or 'english', LANGUAGE_CONFIGS['english'])
         mood_config = mood_params.get(mood.lower(), mood_params['neutral'])
-
+        
         # Get tracks using Spotify's recommendation API
         try:
             # Directly call the async function and await it
@@ -678,18 +675,18 @@ async def fetch_random_tracks(mood: str, limit: int = 10, language: str = None) 
                 limit,
                 mood
             )
-
+            
             if tracks and len(tracks) > 0:
                 return tracks
             else:
                 logger.warning("Spotify returned no tracks, using mock data")
                 return generate_mock_tracks(mood, limit)
-
+                
         except Exception as e:
             logger.error(f"Error getting recommendations: {str(e)}")
             logger.error(traceback.format_exc())
             return generate_mock_tracks(mood, limit)
-
+        
     except Exception as e:
         logger.error(f"Error fetching random tracks: {str(e)}")
         logger.error(traceback.format_exc())
@@ -698,7 +695,7 @@ async def fetch_random_tracks(mood: str, limit: int = 10, language: str = None) 
 def get_supported_languages() -> List[str]:
     """
     Get list of supported languages for song recommendations.
-
+    
     :return: List of supported language codes
     """
     return list(LANGUAGE_CONFIGS.keys())
@@ -706,14 +703,14 @@ def get_supported_languages() -> List[str]:
 def validate_language(language: str | None) -> str | None:
     """
     Validate and normalize language input.
-
+    
     :param language: Input language string
     :return: Normalized language or None if not supported
     """
     if not language:
         logger.info("No language provided, returning None")
         return None
-
+    
     # Normalize language input
     language_map = {
         'eng': 'english',
@@ -733,35 +730,35 @@ def validate_language(language: str | None) -> str | None:
         'por': 'portuguese',
         'pt': 'portuguese'
     }
-
+    
     # Try exact match first
     normalized_language = language.lower()
     if normalized_language in LANGUAGE_CONFIGS:
         logger.info(f"Language '{language}' matched exactly: {normalized_language}")
         return normalized_language
-
+    
     # Try language code mapping
     mapped_language = language_map.get(normalized_language)
     if mapped_language and mapped_language in LANGUAGE_CONFIGS:
         logger.info(f"Language '{language}' mapped to: {mapped_language}")
         return mapped_language
-
+    
     logger.warning(f"Unsupported language: {language}")
     return None
 
 def generate_mock_tracks(mood: str, limit: int = 10) -> List[SpotifyTrack]:
     """
     Generate mock tracks for when Spotify API is unavailable.
-
+    
     Args:
         mood (str): Mood to generate playlist for
         limit (int): Number of tracks to generate
-
+        
     Returns:
         List[SpotifyTrack]: List of mock tracks
     """
     logger.info(f"Generating {limit} mock tracks for mood: {mood}")
-
+    
     # Define mock artists for different moods
     mock_artists = {
         'happy': [
@@ -800,12 +797,12 @@ def generate_mock_tracks(mood: str, limit: int = 10) -> List[SpotifyTrack]:
             {'id': 'disgusted3', 'name': 'Aversion'}
         ]
     }
-
+    
     # Use neutral as fallback for any unrecognized mood
     mood_key = mood.lower()
     if mood_key not in mock_artists:
         mood_key = 'neutral'
-
+        
     # Song titles for different moods
     mock_titles = {
         'happy': [
@@ -844,19 +841,19 @@ def generate_mock_tracks(mood: str, limit: int = 10) -> List[SpotifyTrack]:
             'Revolting', 'Sickening', 'Offensive', 'Unpalatable'
         ]
     }
-
+    
     # Generate mock tracks
     tracks = []
     for i in range(limit):
         # Select random artist from the mood's artist list
         artist = random.choice(mock_artists[mood_key])
-
+        
         # Select random title from the mood's title list
         title = random.choice(mock_titles[mood_key])
-
+        
         # Create a unique ID
         track_id = f"mock_{mood_key}_{i}_{random.randint(1000, 9999)}"
-
+        
         # Create the track
         track = SpotifyTrack(
             id=track_id,
@@ -869,9 +866,9 @@ def generate_mock_tracks(mood: str, limit: int = 10) -> List[SpotifyTrack]:
             uri=f"spotify:track:{track_id}",
             mood=mood_key
         )
-
+        
         tracks.append(track)
-
+    
     logger.info(f"Generated {len(tracks)} mock tracks successfully")
     return tracks
 

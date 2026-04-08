@@ -3,7 +3,7 @@ import { HistoryService, HistoryEntry } from '@/lib/history';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Clock, Trash2, ChevronRight, Music, Calendar } from 'lucide-react';
 import Image from 'next/image';
-import { SpotifyTrack } from '@/lib/api';
+import { } from '@/lib/api';
 
 export default function HistoryDisplay() {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
