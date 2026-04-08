@@ -1,10 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
 import { SpotifyTrack, Mood, EmotionScores } from '@/lib/api';
 import ApiClient from '@/lib/api';
 import { Play, Pause, Heart, ExternalLink, Music, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 import DOMPurify from 'isomorphic-dompurify';
+
+const SANITIZE_CONFIG = {
+  ALLOWED_TAGS: ['a', 'b', 'i', 'em', 'strong', 'br'],
+  ALLOWED_ATTR: ['href', 'target', 'rel'],
+};
 
 interface PlaylistDisplayProps {
   mood: Mood;
@@ -120,6 +125,15 @@ export default function PlaylistDisplay({
   };
 
   const config = getMoodConfig(mood);
+
+  const sanitizedPlaylists = useMemo(() => {
+    return recommendedPlaylists?.map(pl => ({
+      ...pl,
+      sanitizedDescription: pl.description
+        ? DOMPurify.sanitize(pl.description, SANITIZE_CONFIG)
+        : undefined
+    }));
+  }, [recommendedPlaylists]);
 
   return (
     <div className="space-y-8">
@@ -273,7 +287,7 @@ export default function PlaylistDisplay({
             </h3>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {recommendedPlaylists.map((pl, idx) => (
+            {sanitizedPlaylists?.map((pl, idx) => (
               <motion.a
                 key={pl.external_url}
                 href={pl.external_url}
@@ -306,8 +320,13 @@ export default function PlaylistDisplay({
                   <h4 className="font-bold text-lg mb-1 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors line-clamp-1">
                     {pl.name}
                   </h4>
-                  {pl.description && (
-                    <p className="text-sm text-zinc-500 line-clamp-2" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(pl.description) }} />
+                  {pl.sanitizedDescription && (
+                    <p
+                      className="text-sm text-zinc-500 line-clamp-2"
+                      dangerouslySetInnerHTML={{
+                        __html: pl.sanitizedDescription
+                      }}
+                    />
                   )}
                 </div>
               </motion.a>
