@@ -84,6 +84,22 @@ export interface TextAnalysisResponse {
   recommendations: SpotifyTrack[];
 }
 
+export type DetectionResponse = EmotionDetectionResponse | TextAnalysisResponse;
+
+export const getPlaylistFromDetection = (response: DetectionResponse | null): SpotifyTrack[] => {
+  if (!response) return [];
+  if ('playlist' in response) return response.playlist || [];
+  if ('recommendations' in response) return response.recommendations || [];
+  return [];
+};
+
+export const getMoodFromDetection = (response: DetectionResponse | null): Mood | undefined => {
+  if (!response) return undefined;
+  if ('emotion' in response) return response.emotion;
+  if ('mood' in response) return response.mood;
+  return undefined;
+};
+
 // API Client
 class ApiClient {
   private static client = axiosInstance;
@@ -107,7 +123,7 @@ class ApiClient {
     try {
       console.log('Detecting emotion with language:', language);
       // Handle data URL format
-      const base64Data = imageBase64.includes('base64,') 
+      const base64Data = imageBase64.includes('base64,')
         ? imageBase64 // Keep the full data URL format
         : `data:image/jpeg;base64,${imageBase64}`; // Add prefix if it's missing
 
@@ -123,7 +139,7 @@ class ApiClient {
       if (axios.isAxiosError(error)) {
         const statusCode = error.response?.status || 0;
         const errorDetail = error.response?.data?.detail || 'Failed to detect emotion';
-        
+
         // Handle specific error codes
         if (statusCode === 0 || statusCode === 502) {
           throw new Error('Cannot connect to the backend server. Please make sure it is running.');
@@ -146,13 +162,13 @@ class ApiClient {
       return response.data;
     } catch (error) {
       console.error('Failed to fetch supported languages:', error);
-      
+
       if (axios.isAxiosError(error) && (error.code === 'ECONNREFUSED' || !error.response)) {
         console.warn('Backend server appears to be offline, using fallback languages');
       }
-      
+
       // Fallback to common languages if the API call fails
-      return ['english', 'hindi', 'spanish', 'french', 'bangla']; 
+      return ['english', 'hindi', 'spanish', 'french', 'bangla'];
     }
   }
 

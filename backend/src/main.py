@@ -49,6 +49,8 @@ app.include_router(emotion_router, prefix="/api/emotion", tags=["emotion"])
 app.include_router(mood_router, prefix="/api/mood", tags=["mood"])
 app.include_router(spotify_router, prefix="/api/spotify", tags=["spotify"])
 app.include_router(music_router, prefix="/api/music", tags=["music"])
+from src.api.history import history_router
+app.include_router(history_router, prefix="/api/history", tags=["history"])
 
 @app.get("/")
 async def root():

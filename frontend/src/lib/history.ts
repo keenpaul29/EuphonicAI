@@ -1,60 +1,72 @@
 import { Mood, SpotifyTrack } from './api';
+import ApiClient from './api';
 
 export interface HistoryEntry {
-  id: string;
   mood: Mood;
   confidence?: number;
-  timestamp: number;
   tracks: SpotifyTrack[];
 }
 
-const HISTORY_KEY = 'euphonic_history';
-const MAX_HISTORY = 50;
+export interface BackendHistoryEntry extends HistoryEntry {
+  id: number;
+  created_at: string;
+}
 
-export const HistoryService = {
-  getHistory(): HistoryEntry[] {
-    if (typeof window === 'undefined') return [];
+export class HistoryService {
+  static async addEntry(entry: HistoryEntry): Promise<void> {
     try {
-      const raw = localStorage.getItem(HISTORY_KEY);
-      return raw ? JSON.parse(raw) : [];
+      await ApiClient['client'].post('/api/history/', entry);
     } catch (error) {
-      console.error('Failed to load history:', error);
-      return [];
-    }
-  },
-
-  addEntry(entry: Omit<HistoryEntry, 'id' | 'timestamp'>): HistoryEntry {
-    const history = this.getHistory();
-    const newEntry: HistoryEntry = {
-      ...entry,
-      id: Math.random().toString(36).substr(2, 9),
-      timestamp: Date.now(),
-    };
-
-    const updatedHistory = [newEntry, ...history].slice(0, MAX_HISTORY);
-    try {
-      localStorage.setItem(HISTORY_KEY, JSON.stringify(updatedHistory));
-    } catch (error) {
-      console.error('Failed to save history:', error);
-    }
-    return newEntry;
-  },
-
-  clearHistory(): void {
-    try {
-      localStorage.removeItem(HISTORY_KEY);
-    } catch (error) {
-      console.error('Failed to clear history:', error);
-    }
-  },
-
-  removeEntry(id: string): void {
-    const history = this.getHistory();
-    const updatedHistory = history.filter(entry => entry.id !== id);
-    try {
-      localStorage.setItem(HISTORY_KEY, JSON.stringify(updatedHistory));
-    } catch (error) {
-      console.error('Failed to remove history entry:', error);
+      console.error('Failed to save history to backend', error);
+      // Fallback to local storage if backend fails
+      const current = this.getEntriesLocal();
+      const updated = [entry, ...current].slice(0, 50);
+      try {
+        localStorage.setItem('moodify_history', JSON.stringify(updated));
+      } catch (e) {
+        console.error('Failed to save history locally', e);
+      }
     }
   }
-};
+
+  static async getEntries(): Promise<HistoryEntry[]> {
+    try {
+      const response = await ApiClient['client'].get<BackendHistoryEntry[]>('/api/history/');
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch history from backend', error);
+      return this.getEntriesLocal();
+    }
+  }
+
+  private static getEntriesLocal(): HistoryEntry[] {
+    if (typeof window === 'undefined') return [];
+
+    try {
+      const stored = localStorage.getItem('moodify_history');
+      return stored ? JSON.parse(stored) : [];
+    } catch (error) {
+      console.error('Failed to parse history', error);
+      return [];
+    }
+  }
+
+  static async clearHistory(): Promise<void> {
+    try {
+      await ApiClient['client'].delete('/api/history/');
+    } catch (error) {
+      console.error('Failed to clear history from backend', error);
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('moodify_history');
+      }
+    }
+  }
+
+  static async removeEntry(id: string | number): Promise<void> {
+    try {
+      await ApiClient['client'].delete(`/api/history/${id}`);
+    } catch (error) {
+      console.error('Failed to delete history entry from backend', error);
+    }
+  }
+}

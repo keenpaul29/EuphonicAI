@@ -9,19 +9,23 @@ export default function HistoryDisplay() {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
 
   useEffect(() => {
-    setHistory(HistoryService.getHistory());
+    const fetchHistory = async () => {
+      const data = await HistoryService.getEntries();
+      setHistory(data);
+    };
+    fetchHistory();
   }, []);
 
-  const handleClear = () => {
+  const handleClear = async () => {
     if (confirm('Are you sure you want to clear your emotional history?')) {
-      HistoryService.clearHistory();
+      await HistoryService.clearHistory();
       setHistory([]);
     }
   };
 
-  const removeEntry = (id: string) => {
-    HistoryService.removeEntry(id);
-    setHistory(prev => prev.filter(e => e.id !== id));
+  const removeEntry = async (id: string | number) => {
+    await HistoryService.removeEntry(id);
+    setHistory(prev => prev.filter(e => ((e as any).id || (e as any).timestamp) !== id));
   };
 
   const formatDate = (timestamp: number) => {
@@ -78,7 +82,7 @@ export default function HistoryDisplay() {
           <AnimatePresence mode="popLayout">
             {history.map((entry) => (
               <motion.div
-                key={entry.id}
+                key={((entry as any).id || (entry as any).timestamp)}
                 layout
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -94,7 +98,7 @@ export default function HistoryDisplay() {
                       <h4 className="font-bold capitalize text-lg">{entry.mood}</h4>
                       <div className="flex items-center gap-2 text-xs text-zinc-400 font-medium">
                         <Calendar className="w-3 h-3" />
-                        {formatDate(entry.timestamp)}
+                        {formatDate(((entry as any).timestamp || new Date((entry as any).created_at).getTime()))}
                         {entry.confidence && (
                           <span className="bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded text-[10px] uppercase tracking-wider">
                             {(entry.confidence * 100).toFixed(0)}% Match
@@ -104,7 +108,7 @@ export default function HistoryDisplay() {
                     </div>
                   </div>
                   <button
-                    onClick={() => removeEntry(entry.id)}
+                    onClick={() => removeEntry(((entry as any).id || (entry as any).timestamp))}
                     className="p-2 text-zinc-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all"
                   >
                     <Trash2 className="w-4 h-4" />

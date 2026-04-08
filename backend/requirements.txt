@@ -33,3 +33,5 @@ textblob
 # Development and Testing
 pytest
 httpx
+celery
+redis
