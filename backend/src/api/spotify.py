@@ -37,7 +37,6 @@ async def search_spotify_tracks(
     Search Spotify tracks with optional mood filtering
     """
     try:
-        # Note: search_tracks is synchronous, but we can call it in an async endpoint
         tracks = search_tracks(query, limit, language=language)
         return tracks
     except Exception as e:

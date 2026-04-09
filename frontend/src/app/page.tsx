@@ -14,10 +14,10 @@ import ApiClient, { EmotionDetectionResponse, TextAnalysisResponse, Mood } from 
 import { HistoryService } from '@/lib/history';
 import { SignedIn, SignedOut, SignInButton, SignUpButton, useUser } from '@clerk/nextjs';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Camera, Type, History, RefreshCw, Share2, Search, Info, Music } from 'lucide-react';
+import { Sparkles, Camera, Type, History, Settings, ChevronRight, RefreshCw, Share2, Search, Info, Music } from 'lucide-react';
 
 export default function Home() {
-  // const { user } = useUser();
+  const { user } = useUser();
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [detectedMood, setDetectedMood] = useState<EmotionDetectionResponse | TextAnalysisResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -50,8 +50,7 @@ export default function Home() {
   // Refresh playlist logic
   useEffect(() => {
     const refreshPlaylist = async () => {
-      const playlist = (detectedMood as any)?.playlist || (detectedMood as any)?.recommendations;
-      if (playlist && playlist.length > 0) {
+      if (detectedMood?.playlist && detectedMood.playlist.length > 0) {
         // Only refresh if mood is present
         const moodStr = (detectedMood as any).emotion || (detectedMood as any).mood;
         if (!moodStr) return;
@@ -115,7 +114,7 @@ export default function Home() {
         HistoryService.addEntry({
           mood: response.emotion as Mood,
           confidence: response.confidence,
-          tracks: (response as any).playlist || (response as any).recommendations || []
+          tracks: response.playlist || []
         });
       } else {
         throw new Error('Invalid response from emotion detection');
@@ -146,7 +145,7 @@ export default function Home() {
         // Save to history
         HistoryService.addEntry({
           mood: (response as any).mood as Mood,
-          tracks: (response as any).playlist || (response as any).recommendations || []
+          tracks: response.playlist || []
         });
       }
     } catch (err) {
@@ -166,8 +165,7 @@ export default function Home() {
   const handleShare = () => {
     if (detectedMood) {
       const mood = (detectedMood as any).emotion || (detectedMood as any).mood;
-      const playlist = (detectedMood as any).playlist || (detectedMood as any).recommendations || [];
-      const ids = playlist.map((t: any) => t.id);
+      const ids = (detectedMood.playlist || []).map(t => t.id);
       const url = `${window.location.origin}/share?mood=${encodeURIComponent(mood)}&ids=${encodeURIComponent(ids.join(','))}`;
       navigator.clipboard.writeText(url);
       alert('Share link copied to clipboard!');
@@ -396,18 +394,9 @@ export default function Home() {
                       </div>
 
                       {error && (
-                        <div className="mt-4 p-4 bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 rounded-xl text-sm border border-orange-100 dark:border-orange-900/30 flex items-start gap-3">
-                          <Info className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                          <div>
-                            <p className="font-semibold mb-1">Oops, we couldn&apos;t read your vibe.</p>
-                            <p className="opacity-90">{error === 'Failed to fetch' ? 'Our servers are currently taking a breather. Please try again in a moment.' : error}</p>
-                            <button
-                              onClick={() => setInputMode('text')}
-                              className="mt-2 text-orange-700 dark:text-orange-300 font-medium hover:underline focus:outline-none"
-                            >
-                              Try typing your mood instead?
-                            </button>
-                          </div>
+                        <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl text-sm border border-red-100 dark:border-red-900/30 flex items-start gap-3">
+                          <Info className="w-5 h-5 flex-shrink-0" />
+                          <p>{error}</p>
                         </div>
                       )}
                     </div>
@@ -443,7 +432,7 @@ export default function Home() {
                         {detectedMood ? (
                           <PlaylistDisplay
                             mood={(detectedMood as any).emotion || (detectedMood as any).mood}
-                            playlist={(detectedMood as any).playlist || (detectedMood as any).recommendations || []}
+                            playlist={detectedMood.playlist}
                             confidence={(detectedMood as any).confidence}
                             emotionScores={(detectedMood as any).emotion_scores}
                             recommendedPlaylists={(detectedMood as any).recommended_playlists}
