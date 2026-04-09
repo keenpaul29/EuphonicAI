@@ -26,6 +26,7 @@ class SpotifyTrack(BaseModel):
     id: str = Field(..., description="Spotify track ID")
     name: str = Field(..., description="Track name")
     artist: str = Field(..., description="Primary artist name")
+    artists: Optional[List[SpotifyArtist]] = Field(None, description="List of artists")
     album_name: Optional[str] = Field(None, description="Album name")
     album_art_url: Optional[str] = Field(None, description="URL of the track's album artwork")
     preview_url: Optional[str] = Field(None, description="URL for 30-second preview")

@@ -14,6 +14,7 @@ class SpotifyTrack(NamedTuple):
     id: str
     name: str
     artist: str
+    artists: Optional[List[dict]] = None
     album_name: Optional[str] = None
     album_art_url: Optional[str] = None
     preview_url: Optional[str] = None
@@ -128,15 +129,17 @@ async def _generate_mood_playlist(mood: str, limit: int = 10) -> List[Track]:
     # Convert SpotifyTrack to Track objects
     tracks = []
     for track in spotify_tracks:
-        # SpotifyTrack artist is a string, but Track expects a list of artist dicts
-        artists = [{'id': 'unknown', 'name': track.artist}]
+        # Prefer the new artists list, fall back to a list built from the artist string
+        artists = track.artists
+        if not artists:
+            artists = [{'id': 'unknown', 'name': track.artist or "Unknown"}]
 
         tracks.append(
             Track(
                 id=track.id,
                 name=track.name,
                 artists=artists,
-                mood=track.mood,
+                mood=track.mood or mood,
                 preview_url=track.preview_url,
                 uri=track.uri
             )
@@ -172,6 +175,7 @@ def search_tracks(query: str, limit: int = 10, language: Optional[str] = None) -
             id=item['id'],
             name=item['name'],
             artist=item['artists'][0]['name'] if item['artists'] else "Unknown",
+            artists=[{'id': a.get('id', 'unknown'), 'name': a['name']} for a in item['artists']] if item['artists'] else None,
             album_name=item['album']['name'],
             album_art_url=album_art_url,
             preview_url=item.get('preview_url'),
@@ -357,6 +361,7 @@ async def get_tracks_from_artists(spotify: spotipy.Spotify, artist_ids: List[str
                     id=item['id'],
                     name=item['name'],
                     artist=item['artists'][0]['name'] if item['artists'] else "Unknown",
+                    artists=[{'id': a.get('id', 'unknown'), 'name': a['name']} for a in item['artists']] if item['artists'] else None,
                     album_name=item['album']['name'],
                     album_art_url=image_url,
                     preview_url=item.get('preview_url'),
@@ -392,6 +397,7 @@ async def search_bangla_tracks(spotify: spotipy.Spotify, keywords: List[str], li
                         id=item['id'],
                         name=item['name'],
                         artist=item['artists'][0]['name'] if item['artists'] else "Unknown",
+                        artists=[{'id': a.get('id', 'unknown'), 'name': a['name']} for a in item['artists']] if item['artists'] else None,
                         album_name=item['album']['name'],
                         album_art_url=image_url,
                         preview_url=item.get('preview_url'),
@@ -533,6 +539,7 @@ async def get_recommendations(spotify: spotipy.Spotify, lang_config: dict, mood_
                         id=item['id'],
                         name=item['name'],
                         artist=item['artists'][0]['name'] if item['artists'] else "Unknown",
+                        artists=[{'id': a.get('id', 'unknown'), 'name': a['name']} for a in item['artists']] if item['artists'] else None,
                         album_name=item['album']['name'] if 'album' in item else None,
                         album_art_url=album_art_url,
                         preview_url=item.get('preview_url'),
@@ -775,6 +782,7 @@ def generate_mock_tracks(mood: str, limit: int = 10) -> List[SpotifyTrack]:
             id=track_id,
             name=f"{title} {i+1}",
             artist=artist['name'],
+            artists=[artist],
             album_name=f"{title} Album",
             album_art_url=f"https://via.placeholder.com/300?text={title}",
             preview_url=None,

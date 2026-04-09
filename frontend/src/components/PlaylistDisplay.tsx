@@ -272,7 +272,7 @@ export default function PlaylistDisplay({
             </h3>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {recommendedPlaylists.map((pl, idx) => (
+            {recommendedPlaylists?.map((pl, idx) => (
               <motion.a
                 key={pl.external_url}
                 href={pl.external_url}
@@ -306,7 +306,7 @@ export default function PlaylistDisplay({
                     {pl.name}
                   </h4>
                   {pl.description && (
-                    <p className="text-sm text-zinc-500 line-clamp-2" dangerouslySetInnerHTML={{ __html: pl.description }} />
+                    <p className="text-sm text-zinc-500 line-clamp-2">{pl.description}</p>
                   )}
                 </div>
               </motion.a>
