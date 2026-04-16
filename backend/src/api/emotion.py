@@ -4,7 +4,7 @@ import numpy as np
 import base64
 import cv2
 from src.services.emotion_detection import EmotionDetector, decode_image
-from src.services.spotify_service import fetch_random_tracks, get_supported_languages as get_spotify_languages, SpotifyTrack , get_spotify_client
+from src.services.spotify_service import fetch_random_tracks, fetch_mood_playlists, get_supported_languages as get_spotify_languages, SpotifyTrack, SpotifyPlaylist, get_spotify_client
 import logging
 import traceback
 
@@ -49,15 +49,15 @@ class EmotionDetectionResponse(BaseModel):
     emotion_scores: dict[str, float]
     playlist: list[TrackResponse]
     recommended_playlists: list[PlaylistResponse] | None = None
-    
+
 # Helper function to convert SpotifyTrack to TrackResponse
 def convert_to_track_response(track: SpotifyTrack) -> TrackResponse:
     """
     Convert a SpotifyTrack named tuple to a TrackResponse Pydantic model.
-    
+
     Args:
         track (SpotifyTrack): The track to convert
-        
+
     Returns:
         TrackResponse: The converted track
     """
@@ -74,24 +74,24 @@ def convert_to_track_response(track: SpotifyTrack) -> TrackResponse:
 def validate_language(language: str | None) -> str | None:
     """
     Validate and normalize language input.
-    
+
     Args:
         language (str | None): Input language string
-        
+
     Returns:
         str | None: Normalized language code or None if not supported/provided
     """
     if not language:
         return None
-        
+
     try:
         languages = get_spotify_languages()
         language = language.lower()
-        
+
         # Direct match
         if language in languages:
             return language
-            
+
         # Handle common language codes
         language_map = {
             'en': 'english',
@@ -103,12 +103,12 @@ def validate_language(language: str | None) -> str | None:
             'fr': 'french',
             'pt': 'portuguese'
         }
-        
+
         if language in language_map:
             mapped_lang = language_map[language]
             if mapped_lang in languages:
                 return mapped_lang
-                
+
         raise HTTPException(
             status_code=400,
             detail=f"Unsupported language: {language}. Supported languages: {', '.join(languages)}"
@@ -121,20 +121,20 @@ def validate_language(language: str | None) -> str | None:
 async def detect_emotion_endpoint(request: EmotionDetectionRequest):
     """
     Detect emotion from base64 encoded image and optionally return playlist recommendations.
-    
+
     Args:
         request (EmotionDetectionRequest): Request containing base64 encoded image and options
-        
+
     Returns:
         EmotionDetectionResponse: Detected emotion and optional playlist recommendations
     """
     try:
         logger.info("Starting emotion detection request")
-        
+
         # Validate language
         language = validate_language(request.language)
         logger.info(f"Validated language: {language}")
-        
+
         try:
             # Decode base64 image
             logger.info("Decoding image")
@@ -146,14 +146,14 @@ async def detect_emotion_endpoint(request: EmotionDetectionRequest):
                     status_code=400,
                     detail=f"Failed to decode image: {str(e)}"
                 )
-            
+
             # Initialize emotion detector
             detector = EmotionDetector()
-            
+
             # Detect emotion using the detector
             logger.info("Starting emotion detection")
             emotion_result = detector.detect_emotion(image_array)
-            
+
             # We should always have a result now with our fallback mechanism
             if not emotion_result:
                 logger.warning("Emotion detection returned None despite fallback, using default neutral")
@@ -161,14 +161,14 @@ async def detect_emotion_endpoint(request: EmotionDetectionRequest):
                     'emotion': 'neutral',
                     'confidence': 0.5,
                     'emotion_scores': {
-                        'angry': 0.05, 'disgust': 0.05, 'fear': 0.05, 
-                        'happy': 0.1, 'sad': 0.1, 'surprise': 0.05, 
+                        'angry': 0.05, 'disgust': 0.05, 'fear': 0.05,
+                        'happy': 0.1, 'sad': 0.1, 'surprise': 0.05,
                         'neutral': 0.6
                     }
                 }
-            
+
             logger.info(f"Detected emotion: {emotion_result}")
-            
+
             # Ensure emotion name is compatible with Spotify service
             # Map emotion names if needed
             emotion_map = {
@@ -178,11 +178,11 @@ async def detect_emotion_endpoint(request: EmotionDetectionRequest):
             }
             detected_emotion = emotion_result['emotion'].lower()
             mapped_emotion = emotion_map.get(detected_emotion, detected_emotion)
-            
+
             # Get playlist recommendations
             playlist = []
             recommended_playlists = None
-            
+
             if request.include_playlists:
                 logger.info(f"Attempting to get playlist recommendations for mood: {mapped_emotion}")
                 try:
@@ -197,8 +197,26 @@ async def detect_emotion_endpoint(request: EmotionDetectionRequest):
                             language=language
                         )
                         logger.info(f"Got {len(playlist)} tracks for playlist")
-                        
-                        # TODO: Implement playlist recommendations
+
+                        # Fetch recommended playlists
+                        logger.info(f"Fetching recommended playlists for mood: {mapped_emotion}")
+                        recommended_spotify_playlists = await fetch_mood_playlists(
+                            mood=mapped_emotion,
+                            limit=3,
+                            language=language
+                        )
+
+                        # Convert SpotifyPlaylist to PlaylistResponse
+                        recommended_playlists = []
+                        for pl in recommended_spotify_playlists:
+                            recommended_playlists.append(PlaylistResponse(
+                                name=pl.name,
+                                description=pl.description,
+                                image_url=pl.image_url,
+                                external_url=pl.external_url,
+                                tracks=[] # We don't need to populate tracks here as per PlaylistResponse model
+                            ))
+                        logger.info(f"Got {len(recommended_playlists)} recommended playlists")
                     else:
                         logger.warning("Spotify client is not available, skipping playlist recommendations")
                 except Exception as e:
@@ -206,7 +224,7 @@ async def detect_emotion_endpoint(request: EmotionDetectionRequest):
                     logger.error(traceback.format_exc())
                     # Continue without playlist recommendations
                     playlist = []
-            
+
             # Convert SpotifyTrack objects to TrackResponse objects
             track_responses = []
             try:
@@ -218,7 +236,7 @@ async def detect_emotion_endpoint(request: EmotionDetectionRequest):
                 logger.error(f"Error converting tracks: {e}")
                 logger.error(traceback.format_exc())
                 track_responses = []
-            
+
             # Prepare response
             logger.info("Preparing response")
             return EmotionDetectionResponse(
@@ -228,7 +246,7 @@ async def detect_emotion_endpoint(request: EmotionDetectionRequest):
                 playlist=track_responses,
                 recommended_playlists=recommended_playlists
             )
-            
+
         except HTTPException:
             raise
         except Exception as e:
@@ -239,15 +257,15 @@ async def detect_emotion_endpoint(request: EmotionDetectionRequest):
                 emotion="neutral",
                 confidence=0.5,
                 emotion_scores={
-                    'angry': 0.05, 'disgust': 0.05, 'fear': 0.05, 
-                    'happy': 0.1, 'sad': 0.1, 'surprise': 0.05, 
+                    'angry': 0.05, 'disgust': 0.05, 'fear': 0.05,
+                    'happy': 0.1, 'sad': 0.1, 'surprise': 0.05,
                     'neutral': 0.6
                 },
                 playlist=[],
                 recommended_playlists=None
             )
             return neutral_response
-            
+
     except HTTPException:
         raise
     except Exception as e:
@@ -259,7 +277,7 @@ async def detect_emotion_endpoint(request: EmotionDetectionRequest):
 async def get_supported_languages_endpoint():
     """
     Get list of supported languages for song recommendations
-    
+
     Returns:
         List[str]: List of supported language codes
     """
