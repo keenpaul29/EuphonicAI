@@ -754,7 +754,7 @@ def validate_language(language: str | None) -> str | None:
     logger.warning(f"Unsupported language: {language}")
     return None
 
-async def fetch_mood_playlists(mood: str, limit: int = 5, language: str = None) -> List[SpotifyPlaylist]:
+async def fetch_mood_playlists(mood: str, limit: int = 5, language: Optional[str] = None) -> List[SpotifyPlaylist]:
     """
     Fetch playlists based on a mood and language.
     If Spotify API fails, returns mock playlists.

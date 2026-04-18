@@ -20,8 +20,7 @@ def test_generate_mock_playlists():
 def test_fetch_mood_playlists_no_client():
     # Test fallback to mock when client is not available
     with patch('src.services.spotify_service.get_spotify_client', return_value=None):
-        loop = asyncio.get_event_loop()
-        playlists = loop.run_until_complete(fetch_mood_playlists('sad', limit=2))
+        playlists = asyncio.run(fetch_mood_playlists('sad', limit=2))
         assert len(playlists) == 2
         assert all('sad' in p.name.lower() or (p.description and 'sad' in p.description.lower()) for p in playlists)
         assert playlists[0].id.startswith('mock_pl_sad_')
@@ -45,8 +44,7 @@ def test_fetch_mood_playlists_with_client():
     }
 
     with patch('src.services.spotify_service.get_spotify_client', return_value=mock_client):
-        loop = asyncio.get_event_loop()
-        playlists = loop.run_until_complete(fetch_mood_playlists('happy', limit=1))
+        playlists = asyncio.run(fetch_mood_playlists('happy', limit=1))
         assert len(playlists) == 1
         assert playlists[0].name == 'Real Playlist 1'
         assert playlists[0].id == 'pl1'

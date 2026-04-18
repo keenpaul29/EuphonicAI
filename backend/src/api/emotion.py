@@ -71,6 +71,24 @@ def convert_to_track_response(track: SpotifyTrack) -> TrackResponse:
         preview_url=track.preview_url
     )
 
+def convert_to_playlist_response(playlist: SpotifyPlaylist) -> PlaylistResponse:
+    """
+    Convert a SpotifyPlaylist named tuple to a PlaylistResponse Pydantic model.
+
+    Args:
+        playlist (SpotifyPlaylist): The playlist to convert
+
+    Returns:
+        PlaylistResponse: The converted playlist
+    """
+    return PlaylistResponse(
+        name=playlist.name,
+        description=playlist.description,
+        image_url=playlist.image_url,
+        external_url=playlist.external_url,
+        tracks=[]  # Playlists returned by search don't include tracks by default
+    )
+
 def validate_language(language: str | None) -> str | None:
     """
     Validate and normalize language input.
@@ -207,15 +225,7 @@ async def detect_emotion_endpoint(request: EmotionDetectionRequest):
                         )
 
                         # Convert SpotifyPlaylist to PlaylistResponse
-                        recommended_playlists = []
-                        for pl in recommended_spotify_playlists:
-                            recommended_playlists.append(PlaylistResponse(
-                                name=pl.name,
-                                description=pl.description,
-                                image_url=pl.image_url,
-                                external_url=pl.external_url,
-                                tracks=[] # We don't need to populate tracks here as per PlaylistResponse model
-                            ))
+                        recommended_playlists = [convert_to_playlist_response(pl) for pl in recommended_spotify_playlists]
                         logger.info(f"Got {len(recommended_playlists)} recommended playlists")
                     else:
                         logger.warning("Spotify client is not available, skipping playlist recommendations")
