@@ -1,3 +1,4 @@
+import os
 from datetime import datetime, timedelta
 from typing import Optional, Annotated
 from jose import jwt
@@ -10,7 +11,10 @@ from .schemas import UserCreate, UserResponse
 from .database import get_db, User
 
 # JWT Configuration
-SECRET_KEY = "your-secret-key-replace-with-secure-random-key"
+SECRET_KEY = os.getenv("JWT_SECRET")
+if not SECRET_KEY:
+    raise RuntimeError("JWT_SECRET environment variable is not set")
+
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
