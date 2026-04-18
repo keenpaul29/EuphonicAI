@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from typing import List, Optional
 import logging
 import traceback
+import random
 import numpy as np
 
 from ..services.emotion_detection import EmotionDetector, get_supported_emotions
