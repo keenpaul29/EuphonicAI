@@ -128,6 +128,14 @@ class SpotifyTrack(NamedTuple):
     uri: Optional[str] = None
     mood: Optional[str] = None
 
+class SpotifyPlaylist(NamedTuple):
+    id: str
+    name: str
+    external_url: str
+    uri: str
+    description: Optional[str] = None
+    image_url: Optional[str] = None
+
 class Track(NamedTuple):
     id: str
     name: str
@@ -746,6 +754,124 @@ def validate_language(language: str | None) -> str | None:
     logger.warning(f"Unsupported language: {language}")
     return None
 
+async def fetch_mood_playlists(mood: str, limit: int = 5, language: Optional[str] = None) -> List[SpotifyPlaylist]:
+    """
+    Fetch playlists based on a mood and language.
+    If Spotify API fails, returns mock playlists.
+
+    Args:
+        mood (str): Mood to fetch playlists for
+        limit (int): Maximum number of playlists to return. Defaults to 5.
+        language (str): Language preference. Defaults to None.
+
+    Returns:
+        List[SpotifyPlaylist]: List of playlists matching the mood
+    """
+    try:
+        spotify = get_spotify_client()
+        if not spotify:
+            logger.warning("Spotify client not available, using mock playlists")
+            return generate_mock_playlists(mood, limit)
+
+        # Prepare search query
+        query = f"{mood} mood"
+        if language:
+            # Add language to query if it's not English
+            if language.lower() != 'english':
+                query = f"{language} {mood} songs"
+
+        # Get market if language is provided
+        market = None
+        if language:
+            lang_key = language.lower()
+            market = LANGUAGE_CONFIGS.get(lang_key, LANGUAGE_CONFIGS.get('english', {})).get('market')
+
+        logger.info(f"Searching for playlists with query: '{query}' in market: {market}")
+
+        try:
+            # Spotify search for playlists
+            results = spotify.search(q=query, type='playlist', limit=limit, market=market)
+
+            if not results or 'playlists' not in results or not results['playlists']['items']:
+                logger.warning(f"No playlists found for query: {query}")
+                return generate_mock_playlists(mood, limit)
+
+            playlists = []
+            for item in results['playlists']['items']:
+                if not item: continue
+
+                # Get image URL
+                image_url = None
+                if 'images' in item and item['images']:
+                    image_url = item['images'][0]['url']
+
+                playlist = SpotifyPlaylist(
+                    id=item['id'],
+                    name=item['name'],
+                    description=item.get('description'),
+                    image_url=image_url,
+                    external_url=item['external_urls']['spotify'] if 'external_urls' in item else f"https://open.spotify.com/playlist/{item['id']}",
+                    uri=item['uri']
+                )
+                playlists.append(playlist)
+
+            return playlists
+
+        except Exception as e:
+            logger.error(f"Error searching for playlists: {str(e)}")
+            return generate_mock_playlists(mood, limit)
+
+    except Exception as e:
+        logger.error(f"Error in fetch_mood_playlists: {str(e)}")
+        return generate_mock_playlists(mood, limit)
+
+def generate_mock_playlists(mood: str, limit: int = 5) -> List[SpotifyPlaylist]:
+    """
+    Generate mock playlists for when Spotify API is unavailable.
+    """
+    logger.info(f"Generating {limit} mock playlists for mood: {mood}")
+
+    mood_key = mood.lower()
+
+    mock_playlists = [
+        {
+            'name': f'Ultimate {mood.capitalize()} Mix',
+            'description': f'The best {mood} tracks for your listening pleasure.',
+        },
+        {
+            'name': f'{mood.capitalize()} Vibes',
+            'description': f'Keep the {mood} energy going with this curated selection.',
+        },
+        {
+            'name': f'{mood.capitalize()} Essentials',
+            'description': f'Must-hear {mood} anthems and classics.',
+        },
+        {
+            'name': f'Pure {mood.capitalize()}',
+            'description': f'Nothing but 100% {mood} sounds.',
+        },
+        {
+            'name': f'Discover {mood.capitalize()}',
+            'description': f'Explore new and emerging {mood} artists.',
+        }
+    ]
+
+    playlists = []
+    for i in range(min(limit, len(mock_playlists))):
+        p_data = mock_playlists[i]
+        p_id = f"mock_pl_{mood_key}_{i}"
+        playlist = SpotifyPlaylist(
+            id=p_id,
+            name=p_data['name'],
+            description=p_data['description'],
+            image_url=f"https://via.placeholder.com/300?text={mood}+{i+1}",
+            external_url="https://open.spotify.com",
+            uri=f"spotify:playlist:{p_id}"
+        )
+        playlists.append(playlist)
+
+    return playlists
+
 def generate_mock_tracks(mood: str, limit: int = 10) -> List[SpotifyTrack]:
     """
     Generate mock tracks for when Spotify API is unavailable.
@@ -873,4 +999,4 @@ def generate_mock_tracks(mood: str, limit: int = 10) -> List[SpotifyTrack]:
     return tracks
 
 # Export the functions and classes
-__all__ = ['Track', 'SpotifyTrack', 'generate_mood_playlist', 'search_tracks', 'fetch_random_tracks', 'get_supported_languages', 'validate_language', 'generate_mock_tracks']
+__all__ = ['Track', 'SpotifyTrack', 'SpotifyPlaylist', 'generate_mood_playlist', 'search_tracks', 'fetch_random_tracks', 'fetch_mood_playlists', 'get_supported_languages', 'validate_language', 'generate_mock_tracks', 'generate_mock_playlists']
