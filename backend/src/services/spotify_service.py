@@ -447,37 +447,42 @@ async def find_bangla_artists(spotify: spotipy.Spotify, mood: str, limit: int = 
     return list(artists)[:limit]
 
 async def get_tracks_from_artists(spotify: spotipy.Spotify, artist_ids: List[str], limit: int, mood: str) -> List[SpotifyTrack]:
-    """Get tracks from specific artists concurrently."""
+    """Get tracks from specific artists concurrently with rate limiting."""
+
+    # Use a semaphore to limit concurrent API calls to Spotify
+    # Spotify API can be sensitive to rapid concurrent requests
+    semaphore = asyncio.Semaphore(5)
 
     async def fetch_artist_tracks(artist_id: str) -> List[SpotifyTrack]:
-        try:
-            # Get artist's top tracks
-            # Since spotipy is synchronous, we use run_in_executor to not block the event loop
-            loop = asyncio.get_running_loop()
-            results = await loop.run_in_executor(
-                None,
-                lambda: spotify.artist_top_tracks(artist_id, country='BD')
-            )
-
-            artist_tracks = []
-            for item in results['tracks']:
-                image_url = item['album']['images'][0]['url'] if item['album']['images'] else None
-                track = SpotifyTrack(
-                    id=item['id'],
-                    name=item['name'],
-                    artist=item['artists'][0]['name'] if item['artists'] else "Unknown",
-                    album_name=item['album']['name'],
-                    album_art_url=image_url,
-                    preview_url=item.get('preview_url'),
-                    external_url=item['external_urls']['spotify'] if 'external_urls' in item else None,
-                    uri=item['uri'],
-                    mood=mood
+        async with semaphore:
+            try:
+                # Get artist's top tracks
+                # Since spotipy is synchronous, we use run_in_executor to not block the event loop
+                loop = asyncio.get_running_loop()
+                results = await loop.run_in_executor(
+                    None,
+                    lambda: spotify.artist_top_tracks(artist_id, country='BD')
                 )
-                artist_tracks.append(track)
-            return artist_tracks
-        except Exception as e:
-            logger.error(f"Failed to get tracks for artist {artist_id}: {str(e)}")
-            return []
+
+                artist_tracks = []
+                for item in results['tracks']:
+                    image_url = item['album']['images'][0]['url'] if item['album']['images'] else None
+                    track = SpotifyTrack(
+                        id=item['id'],
+                        name=item['name'],
+                        artist=item['artists'][0]['name'] if item['artists'] else "Unknown",
+                        album_name=item['album']['name'],
+                        album_art_url=image_url,
+                        preview_url=item.get('preview_url'),
+                        external_url=item['external_urls']['spotify'] if 'external_urls' in item else None,
+                        uri=item['uri'],
+                        mood=mood
+                    )
+                    artist_tracks.append(track)
+                return artist_tracks
+            except Exception as e:
+                logger.error(f"Failed to get tracks for artist {artist_id}: {str(e)}")
+                return []
 
     # Create tasks for all artists
     tasks = [fetch_artist_tracks(artist_id) for artist_id in artist_ids]

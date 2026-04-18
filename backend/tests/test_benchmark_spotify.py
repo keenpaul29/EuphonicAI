@@ -1,23 +1,16 @@
 import asyncio
 import time
 import sys
-import os
 from unittest.mock import MagicMock
-from typing import List
 
-# Add the project root to the Python path
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-sys.path.insert(0, project_root)
-
-# Mock spotipy before importing the service
+# Structure the mocking before importing the service
 mock_spotipy = MagicMock()
 sys.modules['spotipy'] = mock_spotipy
 sys.modules['spotipy.oauth2'] = MagicMock()
 
-# Import the service
-from backend.src.services.spotify_service import get_tracks_from_artists, SpotifyTrack
+from backend.src.services.spotify_service import get_tracks_from_artists
 
-# Setup mock Spotify client
+# Mock Spotify client that simulates network latency
 class MockSpotify:
     def artist_top_tracks(self, artist_id, country='US'):
         # Simulate network latency
@@ -39,21 +32,24 @@ class MockSpotify:
             ]
         }
 
-async def run_benchmark():
+def test_get_tracks_from_artists_performance():
     spotify = MockSpotify()
     artist_ids = [f'artist_{i}' for i in range(10)]
     limit = 10
     mood = 'happy'
 
-    print(f"Benchmarking get_tracks_from_artists with {len(artist_ids)} artists...")
     start_time = time.perf_counter()
-    tracks = await get_tracks_from_artists(spotify, artist_ids, limit, mood)
+    tracks = asyncio.run(get_tracks_from_artists(spotify, artist_ids, limit, mood))
     end_time = time.perf_counter()
 
     duration = end_time - start_time
-    print(f"Time taken: {duration:.4f} seconds")
-    print(f"Number of tracks returned: {len(tracks)}")
-    return duration
+    print(f"\nPerformance test duration: {duration:.4f} seconds")
+
+    # Assertions
+    assert len(tracks) <= limit
+    # With 10 artists, 0.1s latency and Semaphore(5):
+    # It should take approximately 0.2s.
+    assert duration < 0.5
 
 if __name__ == "__main__":
-    asyncio.run(run_benchmark())
+    test_get_tracks_from_artists_performance()
