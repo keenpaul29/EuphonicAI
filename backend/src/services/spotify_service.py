@@ -447,12 +447,19 @@ async def find_bangla_artists(spotify: spotipy.Spotify, mood: str, limit: int = 
     return list(artists)[:limit]
 
 async def get_tracks_from_artists(spotify: spotipy.Spotify, artist_ids: List[str], limit: int, mood: str) -> List[SpotifyTrack]:
-    """Get tracks from specific artists."""
-    tracks = []
-    for artist_id in artist_ids:
+    """Get tracks from specific artists concurrently."""
+
+    async def fetch_artist_tracks(artist_id: str) -> List[SpotifyTrack]:
         try:
             # Get artist's top tracks
-            results = spotify.artist_top_tracks(artist_id, country='BD')
+            # Since spotipy is synchronous, we use run_in_executor to not block the event loop
+            loop = asyncio.get_running_loop()
+            results = await loop.run_in_executor(
+                None,
+                lambda: spotify.artist_top_tracks(artist_id, country='BD')
+            )
+
+            artist_tracks = []
             for item in results['tracks']:
                 image_url = item['album']['images'][0]['url'] if item['album']['images'] else None
                 track = SpotifyTrack(
@@ -466,10 +473,20 @@ async def get_tracks_from_artists(spotify: spotipy.Spotify, artist_ids: List[str
                     uri=item['uri'],
                     mood=mood
                 )
-                tracks.append(track)
+                artist_tracks.append(track)
+            return artist_tracks
         except Exception as e:
             logger.error(f"Failed to get tracks for artist {artist_id}: {str(e)}")
-            continue
+            return []
+
+    # Create tasks for all artists
+    tasks = [fetch_artist_tracks(artist_id) for artist_id in artist_ids]
+
+    # Run tasks concurrently
+    results = await asyncio.gather(*tasks)
+
+    # Flatten the list of lists
+    tracks = [track for artist_tracks in results for track in artist_tracks]
     
     random.shuffle(tracks)
     return tracks[:limit]
