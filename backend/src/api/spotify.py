@@ -37,7 +37,6 @@ async def search_spotify_tracks(
     Search Spotify tracks with optional mood filtering
     """
     try:
-        # Note: search_tracks is synchronous, but we can call it in an async endpoint
         tracks = search_tracks(query, limit, language=language)
         return tracks
     except Exception as e:
@@ -52,7 +51,7 @@ async def get_random_tracks(
     Fetch random Spotify tracks based on mood
     """
     try:
-        tracks = fetch_random_tracks(mood, limit)
+        tracks = await fetch_random_tracks(mood, limit)
         return tracks
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Random tracks error: {str(e)}")
@@ -78,6 +77,7 @@ async def get_tracks_by_ids(ids: str):
                 id=item['id'],
                 name=item['name'],
                 artist=item['artists'][0]['name'] if item['artists'] else "Unknown",
+                artists=[{'id': a.get('id', 'unknown'), 'name': a['name']} for a in item['artists']] if item['artists'] else None,
                 album_name=item.get('album', {}).get('name'),
                 album_art_url=album_art_url,
                 preview_url=item.get('preview_url'),

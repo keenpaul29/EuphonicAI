@@ -50,6 +50,7 @@ export interface SpotifyTrack {
   id: string;
   name: string;
   artist: string;
+  artists?: SpotifyArtist[];
   album_name?: string;
   album_art_url?: string;
   preview_url?: string;
@@ -95,7 +96,8 @@ class ApiClient {
         if (this.tokenProvider) {
           const token = await this.tokenProvider();
           if (token) {
-            request.headers.set('Authorization', `Bearer ${token}`);
+            request.headers = (request.headers ?? {}) as Record<string, string>;
+            (request.headers as Record<string, string>).Authorization = `Bearer ${token}`;
           }
         }
       } catch {}

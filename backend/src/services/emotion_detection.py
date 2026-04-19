@@ -1,18 +1,3 @@
-"""
-Emotion Detection Service
-
-This module is responsible for parsing base64 image data and using DeepFace
-to extract facial expressions and map them to emotions.
-
-Key Architectural Decisions:
-1. Fallback Cascades: Facial detection is tricky in varying lighting conditions.
-   If the default 'opencv' backend fails (it's fast but less accurate), the code
-   falls back to 'retinaface' (slower but highly accurate).
-2. Image Normalization: Inputs are resized to prevent Out-Of-Memory (OOM) errors.
-   Images are bounded between min_dimension (480px) for accuracy and max_dimension
-   (1024px) for performance.
-"""
-
 import numpy as np
 import logging
 import traceback
